@@ -63,16 +63,6 @@ jobs:
           name: vsix-package
           path: "*.vsix"
 
-      # generate changelog only for releases
-      - name: Generate changelog
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: orhun/git-cliff-action@v2
-        with:
-          config: .github/cliff.toml
-          args: --latest --strip header
-        env:
-          OUTPUT: CHANGELOG.md
-
       # create release only on tag
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')

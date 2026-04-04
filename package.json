@@ -13,7 +13,7 @@
   "version": "0.0.1",
   "publisher": "Pastajello",
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.110.0"
   },
   "scripts": {
     "build": "tsc",

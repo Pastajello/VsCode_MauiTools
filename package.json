@@ -1,0 +1,92 @@
+{
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Pastajello/VsCode_MauiTools.git"
+  },
+  "homepage": "https://github.com/TwojNick/maui-xaml-tools",
+  "bugs": {
+    "url": "https://github.com/TwojNick/maui-xaml-tools/issues"
+  },
+  "name": "maui-xaml-tools",
+  "displayName": "MAUI Xaml Tools",
+  "description": "Set of MAUI Tools for XAML coloring and quick refactorings",
+  "version": "0.0.1",
+  "publisher": "Pastajello",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "package": "vsce package"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.csproj"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "submenus": [
+      {
+        "id": "mauiTools.add",
+        "label": "MAUI Tools → Add"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "mauiTools.add",
+          "when": "explorerResourceIsFolder && isMauiProject",
+          "group": "navigation"
+        }
+      ],
+      "mauiTools.add": [
+        {
+          "command": "mauiTools.addContentPage",
+          "group": "1"
+        },
+        {
+          "command": "mauiTools.addContentView",
+          "group": "2"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "mauiTools.addContentPage",
+        "title": "ContentPage XAML"
+      },
+      {
+        "command": "mauiTools.addContentView",
+        "title": "ContentView XAML"
+      }
+    ],
+    "languages": [
+      {
+        "id": "xaml",
+        "aliases": [
+          "XAML",
+          "xaml"
+        ],
+        "extensions": [
+          ".xaml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "xaml",
+        "scopeName": "text.xml.xaml",
+        "path": "./syntaxes/xaml.tmLanguage.json"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "@types/vscode": "^1.110.0",
+    "typescript": "^6.0.2"
+  }
+}

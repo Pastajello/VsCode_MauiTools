@@ -1,0 +1,30 @@
+# node
+node_modules/
+
+# build output
+out/
+dist/
+
+# logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+# test artifacts
+.vscode-test/
+
+# npm
+package-lock.json
+
+# build output
+bin/
+obj/
+.idea

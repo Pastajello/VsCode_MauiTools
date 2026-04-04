@@ -23,8 +23,11 @@
     </ContentPage.Resources>
 
     <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="16">
 
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <Grid RowDefinitions="50, 50">
+                <Label Grid.Row="1" Text="{Binding User.Details.Description}" />
+            </Grid>
             <!--  x:DataType (compiled binding)  -->
             <VerticalStackLayout x:DataType="local:MainViewModel">
 
@@ -51,21 +54,14 @@
                         <DataTemplate x:DataType="local:ItemModel">
                             <Border Margin="5" Padding="10">
                                 <VerticalStackLayout>
-                                    <Label
-                                        Text="{Binding Source={RelativeSource Mode=FindAncestor,
-                                                     AncestorType={x:Type local:MainPage}},
-                              Path=Title,
-                              x:DataType=local:MainPage}">
-                                    </Label>
+                                    <Label Text="{Binding Source={RelativeSource Mode=FindAncestor, AncestorType={x:Type local:MainPage}}, Path=Title, x:DataType=local:MainPage}" />
                                     <Label FontAttributes="Bold" Text="{Binding Title}" />
 
                                     <!--  Nested binding  -->
                                     <Label FontSize="12" Text="{Binding Details.Description}" />
 
                                     <!--  RelativeSource binding  -->
-                                    <Label FontSize="10"
-                                           Text="{Binding Source={RelativeSource  AncestorType={x:Type ContentPage}},
-                                           Path=Title}" />
+                                    <Label FontSize="10" Text="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=Title}" />
 
                                 </VerticalStackLayout>
                             </Border>
@@ -94,7 +90,7 @@
                 <Entry Placeholder="Trigger test">
                     <Entry.Triggers>
                         <DataTrigger
-                            Binding="{Binding User.Name}"
+                            Binding="{Binding User.Title}"
                             TargetType="Entry"
                             Value="">
                             <Setter Property="BackgroundColor" Value="LightPink" />

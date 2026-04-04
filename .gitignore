@@ -28,3 +28,6 @@ package-lock.json
 bin/
 obj/
 .idea
+
+# generated json for syntax coloring
+syntaxes/*.json

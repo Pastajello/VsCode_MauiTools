@@ -15,7 +15,8 @@
     "tags": {
       "patterns": [
         {
-          "name": "support.class",
+                                           
+          "name": "entity.name.tag",
           "match": "</?[A-Za-z0-9\\.:-]+"
         }
       ]
@@ -23,23 +24,23 @@
     "attributes": {
       "patterns": [
         {
-                                                  
-          "name": "support.type.xaml.x",
+                                                                                         
+          "name": "support.type",
           "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b(?==)"
         },
         {
-                                                      
+                                                     
           "name": "entity.other.attribute-name.namespace",
           "match": "\\b\\w+:\\w+(?==)"
         },
         {
-                                                 
-          "name": "entity.other.attribute-name.attached",
+                                                              
+          "name": "variable.other.property",
           "match": "\\b\\w+\\.\\w+(?==)"
         },
         {
-                           
-          "name": "entity.other.attribute-name.event",
+                                                
+          "name": "entity.name.function",
           "match": "\\b\\w+(Clicked|Tapped|Changed|Loaded|Pressed|Released)(?==)"
         },
         {
@@ -52,7 +53,7 @@
     "bindings": {
       "patterns": [
         {
-          "name": "meta.binding",
+          "name": "meta.embedded.expression",
           "begin": "\\{",
           "end": "\\}",
           "patterns": [
@@ -60,33 +61,37 @@
               "include": "#bindings"
             },
             {
-                                        
-              "name": "support.type.xaml.x",
+                                                    
+              "name": "support.type",
               "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b"
             },
             {
-                                 
-              "name": "entity.name.function",
-              "match": "\\b(Binding|TemplateBinding|StaticResource|DynamicResource|x:Static|DataTemplate)\\b"
+                                                        
+              "name": "support.function",
+              "match": "\\b(Binding|TemplateBinding|StaticResource|DynamicResource|RelativeSource|DataTemplate|OnPlatform|OnIdiom|AppThemeBinding)\\b"
             },
             {
                                             
-              "name": "markup.bold",
-              "match": "(?<=(Binding|TemplateBinding|StaticResource|DynamicResource|x:Static|DataTemplate)\\s)[A-Za-z0-9_:.]+"
+              "name": "variable.other",
+              "match": "(?<=(Binding|TemplateBinding|StaticResource|DynamicResource|RelativeSource|DataTemplate|OnPlatform|OnIdiom|AppThemeBinding)\\s)[A-Za-z0-9_:.]+"
             },
             {
-                                
+                                                            
+              "name": "support.function",
+              "match": "\\b[A-Z][A-Za-z0-9]+\\b(?=\\s|\\})"
+            },
+            {
+                                                   
               "name": "variable.parameter",
               "match": "\\b\\w+(?==)"
             },
             {
-                       
               "name": "punctuation.separator",
               "match": ","
             },
             {
-                                 
-              "name": "constant.language",
+                       
+              "name": "variable.other",
               "match": "(?<=\\=)[^,\\s}]+"
             }
           ]
@@ -96,12 +101,14 @@
     "strings": {
       "patterns": [
         {
+                    
           "name": "string.quoted.double",
           "begin": "\"",
           "end": "\"",
           "patterns": [
             {
-              "name": "constant.numeric.hex",
+                                              
+              "name": "constant.numeric",
               "match": "#[0-9A-Fa-f]{6,8}"
             },
             {

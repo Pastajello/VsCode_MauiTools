@@ -15,7 +15,8 @@
     "tags": {
       "patterns": [
         {
-          "name": "support.class",
+          // XAML tags → like HTML/XML tags
+          "name": "entity.name.tag",
           "match": "</?[A-Za-z0-9\\.:-]+"
         }
       ]
@@ -23,23 +24,23 @@
     "attributes": {
       "patterns": [
         {
-          // ALL x:* attributes (highest priority)
-          "name": "support.type.xaml.x",
+          // x:* → treat like special framework attributes (similar to annotations/types)
+          "name": "support.type",
           "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b(?==)"
         },
         {
-          // Namespaced attributes (local:, vm:, etc.)
+          // local:, vm:, etc. → namespace attributes
           "name": "entity.other.attribute-name.namespace",
           "match": "\\b\\w+:\\w+(?==)"
         },
         {
-          // Attached properties (Grid.Row, etc.)
-          "name": "entity.other.attribute-name.attached",
+          // Grid.Row → property access (like object.property)
+          "name": "variable.other.property",
           "match": "\\b\\w+\\.\\w+(?==)"
         },
         {
-          // Event handlers
-          "name": "entity.other.attribute-name.event",
+          // Clicked → behaves like method/event
+          "name": "entity.name.function",
           "match": "\\b\\w+(Clicked|Tapped|Changed|Loaded|Pressed|Released)(?==)"
         },
         {
@@ -52,7 +53,7 @@
     "bindings": {
       "patterns": [
         {
-          "name": "meta.binding",
+          "name": "meta.embedded.expression",
           "begin": "\\{",
           "end": "\\}",
           "patterns": [
@@ -60,33 +61,37 @@
               "include": "#bindings"
             },
             {
-              // ALL x:* inside bindings
-              "name": "support.type.xaml.x",
+              // x:* (Reference, Type, Static, etc.)
+              "name": "support.type",
               "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b"
             },
             {
-              // Binding keywords
-              "name": "entity.name.function",
-              "match": "\\b(Binding|TemplateBinding|StaticResource|DynamicResource|x:Static|DataTemplate)\\b"
+              // ALL known markup extensions (MAUI/XAML)
+              "name": "support.function",
+              "match": "\\b(Binding|TemplateBinding|StaticResource|DynamicResource|RelativeSource|DataTemplate|OnPlatform|OnIdiom|AppThemeBinding)\\b"
             },
             {
               // Main argument after keyword
-              "name": "markup.bold",
-              "match": "(?<=(Binding|TemplateBinding|StaticResource|DynamicResource|x:Static|DataTemplate)\\s)[A-Za-z0-9_:.]+"
+              "name": "variable.other",
+              "match": "(?<=(Binding|TemplateBinding|StaticResource|DynamicResource|RelativeSource|DataTemplate|OnPlatform|OnIdiom|AppThemeBinding)\\s)[A-Za-z0-9_:.]+"
             },
             {
-              // Parameter names
+              // Fallback for future extensions (PascalCase)
+              "name": "support.function",
+              "match": "\\b[A-Z][A-Za-z0-9]+\\b(?=\\s|\\})"
+            },
+            {
+              // Parameters (Path=, Source=, Mode=)
               "name": "variable.parameter",
               "match": "\\b\\w+(?==)"
             },
             {
-              // Commas
               "name": "punctuation.separator",
               "match": ","
             },
             {
-              // Parameter values
-              "name": "constant.language",
+              // Values
+              "name": "variable.other",
               "match": "(?<=\\=)[^,\\s}]+"
             }
           ]
@@ -96,12 +101,14 @@
     "strings": {
       "patterns": [
         {
+          // Strings
           "name": "string.quoted.double",
           "begin": "\"",
           "end": "\"",
           "patterns": [
             {
-              "name": "constant.numeric.hex",
+              // HEX colors → numeric constant
+              "name": "constant.numeric",
               "match": "#[0-9A-Fa-f]{6,8}"
             },
             {

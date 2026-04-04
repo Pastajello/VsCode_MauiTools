@@ -15,12 +15,6 @@
     "tags": {
       "patterns": [
         {
-          // Matches XAML tags (opening and closing)
-          // Examples:
-          // <ContentPage>
-          // </ContentPage>
-          // <StackLayout>
-          // <x:TypeArguments>
           "name": "support.class",
           "match": "</?[A-Za-z0-9\\.:-]+"
         }
@@ -29,39 +23,27 @@
     "attributes": {
       "patterns": [
         {
-          // Matches namespaced attributes (prefix:name)
-          // Examples:
-          // x:Name="RootPage"
-          // x:Class="MauiApp.MainPage"
-          // local:MyProperty="value"
+          // ALL x:* attributes (highest priority)
+          "name": "support.type.xaml.x",
+          "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b(?==)"
+        },
+        {
+          // Namespaced attributes (local:, vm:, etc.)
           "name": "entity.other.attribute-name.namespace",
           "match": "\\b\\w+:\\w+(?==)"
         },
         {
-          // Matches attached properties (Type.Property)
-          // Examples:
-          // Grid.Row="0"
-          // Grid.Column="1"
-          // AbsoluteLayout.LayoutBounds="0,0,1,1"
+          // Attached properties (Grid.Row, etc.)
           "name": "entity.other.attribute-name.attached",
           "match": "\\b\\w+\\.\\w+(?==)"
         },
         {
-          // Matches event handlers (common MAUI naming convention)
-          // Examples:
-          // Clicked="OnClicked"
-          // Tapped="OnTapped"
-          // TextChanged="OnTextChanged"
-          // Loaded="OnLoaded"
+          // Event handlers
           "name": "entity.other.attribute-name.event",
           "match": "\\b\\w+(Clicked|Tapped|Changed|Loaded|Pressed|Released)(?==)"
         },
         {
-          // Matches standard attribute names
-          // Examples:
-          // Text="Hello"
-          // BackgroundColor="Red"
-          // Command="{Binding Submit}"
+          // Default attributes
           "name": "entity.other.attribute-name",
           "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b(?==)"
         }
@@ -70,80 +52,40 @@
     "bindings": {
       "patterns": [
         {
-          // Matches full markup extension block {...}
-          // Examples:
-          // {Binding Name}
-          // {StaticResource PrimaryColor}
-          // {DynamicResource SecondaryColor}
-          // {Binding Source={x:Reference Root}, Path=Title}
           "name": "meta.binding",
           "begin": "\\{",
           "end": "\\}",
           "patterns": [
             {
-              // Allows nested bindings inside bindings
-              // Example:
-              // {Binding Source={x:Reference Root}}
               "include": "#bindings"
             },
             {
-              // Matches known XAML markup extension keywords
-              // Examples:
-              // Binding
-              // StaticResource
-              // DynamicResource
-              // x:Static
-              // DataTemplate
+              // ALL x:* inside bindings
+              "name": "support.type.xaml.x",
+              "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b"
+            },
+            {
+              // Binding keywords
               "name": "entity.name.function",
-              "match": "\\b(Binding|TemplateBinding|StaticResource|x:StaticResource|DynamicResource|x:DynamicResource|x:Static|DataTemplate)\\b"
+              "match": "\\b(Binding|TemplateBinding|StaticResource|DynamicResource|x:Static|DataTemplate)\\b"
             },
             {
-              // Matches main argument after keyword
-              // Examples:
-              // {Binding Name}
-              // {StaticResource PrimaryColor}
-              // {DynamicResource SecondaryColor}
+              // Main argument after keyword
               "name": "markup.bold",
-              "match": "(?<=(Binding|TemplateBinding|StaticResource|x:StaticResource|DynamicResource|x:DynamicResource|x:Static|DataTemplate)\\s)[A-Za-z0-9_:.]+"
+              "match": "(?<=(Binding|TemplateBinding|StaticResource|DynamicResource|x:Static|DataTemplate)\\s)[A-Za-z0-9_:.]+"
             },
             {
-              // Matches namespaced identifiers inside bindings
-              // Examples:
-              // {x:Reference RootPage}
-              // {x:Type ContentPage}
-              "name": "markup.italic",
-              "match": "\\b[A-Za-z_][A-Za-z0-9_]*:[A-Za-z_][A-Za-z0-9_]*(?=\\})"
-            },
-            {
-              // Matches namespace references at the beginning of binding
-              // Examples:
-              // {x:Reference Root}
-              // {x:Type ContentPage}
-              "name": "text.html.derivative",
-              "match": "(?<=\\{)\\b[A-Za-z_][A-Za-z0-9_]*:[A-Za-z_][A-Za-z0-9_]*\\b"
-            },
-            {
-              // Matches parameter names inside bindings
-              // Examples:
-              // Path=Name
-              // Source=...
-              // Converter=...
+              // Parameter names
               "name": "variable.parameter",
               "match": "\\b\\w+(?==)"
             },
             {
-              // Matches comma separators
-              // Examples:
-              // {Binding Path=Name, Mode=TwoWay}
-              "name": "text.html.derivative",
+              // Commas
+              "name": "punctuation.separator",
               "match": ","
             },
             {
-              // Matches parameter values
-              // Examples:
-              // Path=Name
-              // Mode=TwoWay
-              // ConverterParameter=123
+              // Parameter values
               "name": "constant.language",
               "match": "(?<=\\=)[^,\\s}]+"
             }
@@ -154,27 +96,15 @@
     "strings": {
       "patterns": [
         {
-          // Matches double-quoted attribute values
-          // Examples:
-          // Text="Hello"
-          // Color="#FF00FF"
-          // Command="{Binding Submit}"
           "name": "string.quoted.double",
           "begin": "\"",
           "end": "\"",
           "patterns": [
             {
-              // Matches hex colors inside strings
-              // Examples:
-              // "#FF0000"
-              // "#FF00FF00"
               "name": "constant.numeric.hex",
               "match": "#[0-9A-Fa-f]{6,8}"
             },
             {
-              // Allows bindings inside strings
-              // Example:
-              // Text="{Binding Name}"
               "include": "#bindings"
             }
           ]

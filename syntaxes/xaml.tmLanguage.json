@@ -15,12 +15,6 @@
     "tags": {
       "patterns": [
         {
-                                                    
-                      
-                          
-                           
-                          
-                              
           "name": "support.class",
           "match": "</?[A-Za-z0-9\\.:-]+"
         }
@@ -29,39 +23,27 @@
     "attributes": {
       "patterns": [
         {
-                                                        
-                      
-                              
-                                       
-                                     
+                                                  
+          "name": "support.type.xaml.x",
+          "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b(?==)"
+        },
+        {
+                                                      
           "name": "entity.other.attribute-name.namespace",
           "match": "\\b\\w+:\\w+(?==)"
         },
         {
-                                                        
-                      
-                         
-                            
-                                                  
+                                                 
           "name": "entity.other.attribute-name.attached",
           "match": "\\b\\w+\\.\\w+(?==)"
         },
         {
-                                                                   
-                      
-                                
-                              
-                                        
-                              
+                           
           "name": "entity.other.attribute-name.event",
           "match": "\\b\\w+(Clicked|Tapped|Changed|Loaded|Pressed|Released)(?==)"
         },
         {
-                                             
-                      
-                         
-                                  
-                                       
+                               
           "name": "entity.other.attribute-name",
           "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b(?==)"
         }
@@ -70,80 +52,40 @@
     "bindings": {
       "patterns": [
         {
-                                                      
-                      
-                           
-                                          
-                                             
-                                                            
           "name": "meta.binding",
           "begin": "\\{",
           "end": "\\}",
           "patterns": [
             {
-                                                       
-                         
-                                                    
               "include": "#bindings"
             },
             {
-                                                             
-                          
-                        
-                               
-                                
-                         
-                             
+                                        
+              "name": "support.type.xaml.x",
+              "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b"
+            },
+            {
+                                 
               "name": "entity.name.function",
-              "match": "\\b(Binding|TemplateBinding|StaticResource|x:StaticResource|DynamicResource|x:DynamicResource|x:Static|DataTemplate)\\b"
+              "match": "\\b(Binding|TemplateBinding|StaticResource|DynamicResource|x:Static|DataTemplate)\\b"
             },
             {
-                                                    
-                          
-                               
-                                              
-                                                 
+                                            
               "name": "markup.bold",
-              "match": "(?<=(Binding|TemplateBinding|StaticResource|x:StaticResource|DynamicResource|x:DynamicResource|x:Static|DataTemplate)\\s)[A-Za-z0-9_:.]+"
+              "match": "(?<=(Binding|TemplateBinding|StaticResource|DynamicResource|x:Static|DataTemplate)\\s)[A-Za-z0-9_:.]+"
             },
             {
-                                                               
-                          
-                                       
-                                     
-              "name": "markup.italic",
-              "match": "\\b[A-Za-z_][A-Za-z0-9_]*:[A-Za-z_][A-Za-z0-9_]*(?=\\})"
-            },
-            {
-                                                                         
-                          
-                                   
-                                     
-              "name": "text.html.derivative",
-              "match": "(?<=\\{)\\b[A-Za-z_][A-Za-z0-9_]*:[A-Za-z_][A-Za-z0-9_]*\\b"
-            },
-            {
-                                                        
-                          
-                          
-                           
-                              
+                                
               "name": "variable.parameter",
               "match": "\\b\\w+(?==)"
             },
             {
-                                         
-                          
-                                                 
-              "name": "text.html.derivative",
+                       
+              "name": "punctuation.separator",
               "match": ","
             },
             {
-                                         
-                          
-                          
-                            
-                                       
+                                 
               "name": "constant.language",
               "match": "(?<=\\=)[^,\\s}]+"
             }
@@ -154,27 +96,15 @@
     "strings": {
       "patterns": [
         {
-                                                   
-                      
-                         
-                            
-                                       
           "name": "string.quoted.double",
           "begin": "\"",
           "end": "\"",
           "patterns": [
             {
-                                                  
-                          
-                          
-                            
               "name": "constant.numeric.hex",
               "match": "#[0-9A-Fa-f]{6,8}"
             },
             {
-                                               
-                         
-                                      
               "include": "#bindings"
             }
           ]

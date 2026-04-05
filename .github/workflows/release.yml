@@ -33,7 +33,7 @@ jobs:
 
       - run: npm install
 
-      # only on tag
+      # Set version from tag (only on tag push)
       - name: Set version from tag
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -48,22 +48,19 @@ jobs:
 
       - run: npm run build
 
-      # package if:
-      # - tag build
-      # - OR manual with package=true
+      # Package VSIX
       - name: Package extension
         if: startsWith(github.ref, 'refs/tags/') || inputs.package == 'true'
-        run: npx vsce package
+        run: npx vsce package --no-dependencies
 
-      # upload artifact for manual runs
+      # Upload artifact
       - name: Upload VSIX
-        if: github.event_name == 'workflow_dispatch' && inputs.package == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: vsix-package
           path: "*.vsix"
 
-      # create release only on tag
+      # Create GitHub Release (tag only)
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
@@ -72,3 +69,10 @@ jobs:
           files: "*.vsix"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 🔥 Publish to VS Code Marketplace
+      - name: Publish to VS Code Marketplace
+        if: startsWith(github.ref, 'refs/tags/')
+        run: npx vsce publish -p $VSCE_PAT --packagePath *.vsix
+        env:
+          VSCE_PAT: ${{ secrets.MARKETPLACE_PAT }}

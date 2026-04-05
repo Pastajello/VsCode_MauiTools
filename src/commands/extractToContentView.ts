@@ -46,10 +46,51 @@ export async function extractToContentView() {
     const xamlPath = path.join(folderPath, `${name}.xaml`);
     const csPath = path.join(folderPath, `${name}.xaml.cs`);
 
-    // --- CREATE XAML ---
+    // =========================
+    //  EXTRACT USED XMLNS
+    // =========================
+
+    const usedPrefixes = new Set<string>();
+    const prefixRegex = /\b([a-zA-Z_][\w]*):/g;
+
+    let match;
+    while ((match = prefixRegex.exec(selectedText)) !== null) {
+        const prefix = match[1];
+
+        if (prefix === 'x') continue;
+
+        usedPrefixes.add(prefix);
+    }
+
+    const docText = editor.document.getText();
+
+    const xmlnsRegex = /xmlns:(\w+)="([^"]+)"/g;
+    const namespaceMap = new Map<string, string>();
+
+    while ((match = xmlnsRegex.exec(docText)) !== null) {
+        namespaceMap.set(match[1], match[2]);
+    }
+
+    let extraXmlns = '';
+    const missingPrefixes: string[] = [];
+
+    for (const prefix of usedPrefixes) {
+        const ns = namespaceMap.get(prefix);
+
+        if (ns) {
+            extraXmlns += `\n             xmlns:${prefix}="${ns}"`;
+        } else {
+            missingPrefixes.push(prefix);
+        }
+    }
+
+    // =========================
+    //  CREATE XAML
+    // =========================
+
     const wrapped = `
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"${extraXmlns}
              x:Class="${fullClass}">
 ${selectedText}
 </ContentView>
@@ -60,7 +101,10 @@ ${selectedText}
         Buffer.from(wrapped, 'utf8')
     );
 
-    // --- CREATE CS ---
+    // =========================
+    //  CREATE CODE BEHIND
+    // =========================
+
     const cs = `
 namespace ${namespace};
 
@@ -78,55 +122,50 @@ public partial class ${name} : ContentView
         Buffer.from(cs, 'utf8')
     );
 
-    // --- EDIT ORIGINAL FILE ---
+    // =========================
+    //  EDIT ORIGINAL FILE
+    // =========================
+
     await editor.edit(editBuilder => {
 
-        const docText = editor.document.getText();
-
-        // --- 1. find existing xmlns ---
         const namespaceRegex = /xmlns:(\w+)="clr-namespace:([^"]+)"/g;
 
         let match;
         let foundPrefix: string | null = null;
-        const usedPrefixes = new Set<string>();
+        const usedPrefixesInDoc = new Set<string>();
 
         while ((match = namespaceRegex.exec(docText)) !== null) {
             const prefix = match[1];
             const ns = match[2];
 
-            usedPrefixes.add(prefix);
+            usedPrefixesInDoc.add(prefix);
 
             if (ns === namespace) {
                 foundPrefix = prefix;
             }
         }
 
-        // --- 2. decide prefix ---
+        // --- decide prefix ---
         let prefixToUse = foundPrefix;
 
         if (!prefixToUse) {
 
-            // smart prefix from last namespace segment
             const lastPart = namespace.split('.').pop()?.toLowerCase() || 'controls';
 
             let base = lastPart;
 
-            // normalize common names
-            if (base === 'views') base = 'views';
-            else if (base === 'controls') base = 'controls';
-            else if (base === 'components') base = 'components';
-            else base = 'controls';
+            if (!['views', 'controls', 'components'].includes(base)) {
+                base = 'controls';
+            }
 
             prefixToUse = base;
 
-            // ensure uniqueness
             let counter = 1;
-            while (usedPrefixes.has(prefixToUse)) {
+            while (usedPrefixesInDoc.has(prefixToUse)) {
                 prefixToUse = `${base}${counter}`;
                 counter++;
             }
 
-            // add xmlns
             const xmlns = `xmlns:${prefixToUse}="clr-namespace:${namespace}"`;
 
             const rootMatch = docText.match(/<[^!?][^>]+/);
@@ -141,9 +180,19 @@ public partial class ${name} : ContentView
             }
         }
 
-        // --- 3. replace selection ---
+        // --- replace selection ---
         editBuilder.replace(selection, `<${prefixToUse}:${name} />`);
     });
 
-    vscode.window.showInformationMessage(`Created ${name}`);
+    // =========================
+    //  FEEDBACK
+    // =========================
+
+    if (missingPrefixes.length > 0) {
+        vscode.window.showWarningMessage(
+            `Missing xmlns for: ${missingPrefixes.join(', ')}`
+        );
+    } else {
+        vscode.window.showInformationMessage(`Created ${name}`);
+    }
 }

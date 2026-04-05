@@ -1,0 +1,29 @@
+# source
+src/**
+scripts/**
+tsconfig.json
+
+# node
+node_modules/**
+
+# git
+.git/**
+.gitignore
+
+# vscode
+.vscode/**
+
+# samples / assets
+Sample/**
+videos/**
+
+# misc
+*.log
+*.ts
+*.map
+
+# tests (if any)
+**/*.test.*
+
+# macOS
+.DS_Store

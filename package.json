@@ -20,8 +20,9 @@
     "watch": "npm run build:grammar && concurrently \"npm:watch:ts\" \"npm:watch:grammar\"",
     "watch:ts": "tsc -w",
     "watch:grammar": "chokidar \"syntaxes/*.jsonc\" -c \"npm run build:grammar\"",
-    "package": "npm run build && vsce package",
-    "build:grammar": "node ./scripts/build-grammar.js"
+    "package": "npm run build && vsce package --no-dependencies",
+    "build:grammar": "node ./scripts/build-grammar.js",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --outfile=out/extension.js"
   },
   "categories": [
     "Programming Languages"
@@ -92,6 +93,7 @@
     "@types/vscode": "^1.110.0",
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.2.1",
+    "esbuild": "^0.28.0",
     "strip-json-comments": "^5.0.3",
     "typescript": "^6.0.2"
   }

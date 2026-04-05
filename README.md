@@ -9,6 +9,8 @@ It enhances the default tooling by adding:
 * productivity features inspired by full Visual Studio
 
 ---
+![Coloring demo](videos/xaml_coloring.gif)
+![Create ContentPage demo](videos/create_template.gif)
 
 ## ✨ Features
 

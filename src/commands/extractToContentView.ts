@@ -81,28 +81,68 @@ public partial class ${name} : ContentView
     // --- EDIT ORIGINAL FILE ---
     await editor.edit(editBuilder => {
 
-        // 1. Replace selection
-        editBuilder.replace(selection, `<local:${name} />`);
-
         const docText = editor.document.getText();
 
-        // 2. Ensure xmlns:local exists
-        if (!docText.includes('xmlns:local=')) {
+        // --- 1. find existing xmlns ---
+        const namespaceRegex = /xmlns:(\w+)="clr-namespace:([^"]+)"/g;
 
-            const xmlns = `xmlns:local="clr-namespace:${namespace}"`;
+        let match;
+        let foundPrefix: string | null = null;
+        const usedPrefixes = new Set<string>();
 
-            // find root tag
-            const match = docText.match(/<[^!?][^>]+/);
+        while ((match = namespaceRegex.exec(docText)) !== null) {
+            const prefix = match[1];
+            const ns = match[2];
 
-            if (match && match.index !== undefined) {
+            usedPrefixes.add(prefix);
+
+            if (ns === namespace) {
+                foundPrefix = prefix;
+            }
+        }
+
+        // --- 2. decide prefix ---
+        let prefixToUse = foundPrefix;
+
+        if (!prefixToUse) {
+
+            // smart prefix from last namespace segment
+            const lastPart = namespace.split('.').pop()?.toLowerCase() || 'controls';
+
+            let base = lastPart;
+
+            // normalize common names
+            if (base === 'views') base = 'views';
+            else if (base === 'controls') base = 'controls';
+            else if (base === 'components') base = 'components';
+            else base = 'controls';
+
+            prefixToUse = base;
+
+            // ensure uniqueness
+            let counter = 1;
+            while (usedPrefixes.has(prefixToUse)) {
+                prefixToUse = `${base}${counter}`;
+                counter++;
+            }
+
+            // add xmlns
+            const xmlns = `xmlns:${prefixToUse}="clr-namespace:${namespace}"`;
+
+            const rootMatch = docText.match(/<[^!?][^>]+/);
+
+            if (rootMatch && rootMatch.index !== undefined) {
 
                 const insertPos = editor.document.positionAt(
-                    match.index + match[0].length
+                    rootMatch.index + rootMatch[0].length
                 );
 
                 editBuilder.insert(insertPos, ` ${xmlns}`);
             }
         }
+
+        // --- 3. replace selection ---
+        editBuilder.replace(selection, `<${prefixToUse}:${name} />`);
     });
 
     vscode.window.showInformationMessage(`Created ${name}`);

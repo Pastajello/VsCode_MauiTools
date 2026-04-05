@@ -1,5 +1,8 @@
 # MAUI Toolkit for VS Code
 
+![GitHub License](https://img.shields.io/github/license/Pastajello/VsCode_MauiTools?style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/Pastajello/VsCode_MauiTools?style=for-the-badge)
+
 **MAUI Toolkit** is a set of tools designed to improve the development experience for .NET MAUI projects in Visual Studio Code.
 
 It enhances the default tooling by adding:
@@ -46,7 +49,7 @@ A sample MAUI project will open automatically for testing.
 
 ## 🗺️ Roadmap
 
-* [ ] Color XAML
+* [x] Color XAML
 
 * [x] Create basic `ContentPage` and `ContentView`
 
@@ -55,6 +58,7 @@ A sample MAUI project will open automatically for testing.
 
 * [ ] Extract UI into reusable components
   *(e.g. select part of XAML → extract to ContentView + generate BindableProperties)*
+* a lot more
 
 
 ---

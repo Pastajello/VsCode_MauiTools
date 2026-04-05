@@ -46,6 +46,13 @@
           "group": "navigation"
         }
       ],
+      "editor/context": [
+        {
+          "command": "mauiTools.extractToContentView",
+          "when": "editorHasSelection && isMauiProject",
+          "group": "refactor"
+        }
+      ],
       "mauiTools.add": [
         {
           "command": "mauiTools.addContentPage",
@@ -65,6 +72,10 @@
       {
         "command": "mauiTools.addContentView",
         "title": "ContentView XAML"
+      },
+      {
+        "command": "mauiTools.extractToContentView",
+        "title": "Extract to ContentView"
       }
     ],
     "languages": [

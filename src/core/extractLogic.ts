@@ -36,38 +36,54 @@ export function extractXmlns(selectedText: string, docText: string) {
 
 export function extractBindings(text: string): string[] {
 
-    const matches = [...text.matchAll(/\{Binding\s+([^}]+)\}/gs)];
-
     const props: string[] = [];
 
-    for (const match of matches) {
+    const bindings = extractBindingBlocks(text);
 
-        let content = match[1].trim();
+    for (const contentRaw of bindings) {
 
+        let content = contentRaw.trim();
         if (!content) continue;
 
         // =========================
-        // 1. split po przecinku (parametry)
+        // SAFE SPLIT (ignore commas inside {})
         // =========================
 
-        const parts = content.split(',').map(p => p.trim());
+        const parts: string[] = [];
+        let current = '';
+        let depth = 0;
+
+        for (const char of content) {
+
+            if (char === '{') depth++;
+            if (char === '}') depth--;
+
+            if (char === ',' && depth === 0) {
+                parts.push(current.trim());
+                current = '';
+                continue;
+            }
+
+            current += char;
+        }
+
+        if (current) parts.push(current.trim());
+
+        // =========================
+        // FIND PATH
+        // =========================
 
         let pathCandidate: string | undefined;
 
         for (const part of parts) {
 
-            // Path=Something
             if (part.startsWith('Path=')) {
                 pathCandidate = part.replace('Path=', '').trim();
                 break;
             }
 
-            // Source=... → ignorujemy
-            if (part.startsWith('Source=')) {
-                continue;
-            }
+            if (part.startsWith('Source=')) continue;
 
-            // pierwszy "czysty" binding (bez =)
             if (!part.includes('=')) {
                 pathCandidate = part;
                 break;
@@ -77,20 +93,18 @@ export function extractBindings(text: string): string[] {
         if (!pathCandidate) continue;
 
         // =========================
-        // 2. clean path
+        // CLEAN PATH
         // =========================
 
-        // usuń indexery [0]
-        pathCandidate = pathCandidate.replace(/\[.*?\]/g, '');
+        pathCandidate = pathCandidate
+            .replace(/\[.*?\]/g, '')
+            .replace(/\?\./g, '.')
+            .trim();
 
-        // usuń null-safe operator
-        pathCandidate = pathCandidate.replace(/\?\./g, '.');
-
-        // edge case: "." albo ""
         if (pathCandidate === '.' || pathCandidate === '') continue;
 
         // =========================
-        // 3. weź ostatni segment
+        // LAST SEGMENT
         // =========================
 
         const segments = pathCandidate.split('.');
@@ -103,6 +117,49 @@ export function extractBindings(text: string): string[] {
 
     return [...new Set(props)];
 }
+
+function extractBindingBlocks(text: string): string[] {
+
+    const results: string[] = [];
+
+    for (let i = 0; i < text.length; i++) {
+
+        if (text[i] !== '{') continue;
+
+        // sprawdź czy to Binding
+        const rest = text.slice(i);
+        const match = rest.match(/^\{\s*Binding\b/);
+
+        if (!match) continue;
+
+        let depth = 0;
+        let j = i;
+
+        for (; j < text.length; j++) {
+
+            if (text[j] === '{') depth++;
+            if (text[j] === '}') depth--;
+
+            if (depth === 0) break;
+        }
+
+        if (depth === 0) {
+            const full = text.slice(i, j + 1);
+
+            // usuń "{Binding" i końcowe "}"
+            const inner = full
+                .replace(/^\{\s*Binding\s*/, '')
+                .slice(0, -1);
+
+            results.push(inner);
+
+            i = j; // skip dalej
+        }
+    }
+
+    return results;
+}
+
 
 
 export function generateBindableProperties(bindings: string[], controlName: string): string {

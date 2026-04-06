@@ -36,15 +36,23 @@ export function extractXmlns(selectedText: string, docText: string) {
 
 export function extractBindings(text: string): string[] {
 
-     const matches = [...text.matchAll(/\{Binding\s+([A-Za-z0-9_.]+)/g)];
+     const matches = [...text.matchAll(/\{Binding\s+([^}]+)\}/g)];
 
-    const props = matches.map(m => {
-        const full = m[1];
+    const props: string[] = [];
 
-        // weź ostatni segment po kropce
-        const parts = full.split('.');
-        return parts[parts.length - 1];
-    });
+    for (const match of matches) {
+
+        const content = match[1].trim();
+
+        // Source=..., Path=..., Mode=...
+        if (content.includes('=')) continue;
+
+        // np. Details.Description → Description
+        const parts = content.split('.');
+        const last = parts[parts.length - 1];
+
+        props.push(last);
+    }
 
     return [...new Set(props)];
 }

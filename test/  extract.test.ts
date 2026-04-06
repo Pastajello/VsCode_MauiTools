@@ -26,6 +26,15 @@ describe('XAML Extract Logic', () => {
         assert.deepStrictEqual(result, ['Title', 'Description']);
     });
 
+    it('should extract last segment from deep binding', () => {
+
+        const input = `{Binding A.B.C}`;
+
+        const result = extractBindings(input);
+
+        assert.deepStrictEqual(result, ['C']);
+    });
+
     it('should ignore duplicates', () => {
 
         const input = `

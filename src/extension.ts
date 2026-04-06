@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import { addContentPage } from './commands/addContentPage';
 import { addContentView } from './commands/addContentView';
+import { extractToControl } from './commands/extractToControl';
+
+import { ExtractToContentViewProvider } from './codeActions/extractProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
-
     const isMaui = await detectMauiProject();
 
     console.log('MAUI DETECTED:', isMaui);
@@ -12,11 +14,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         vscode.commands.registerCommand('mauiTools.addContentPage', addContentPage),
-        vscode.commands.registerCommand('mauiTools.addContentView', addContentView)
+        vscode.commands.registerCommand('mauiTools.addContentView', addContentView),
+        vscode.commands.registerCommand('mauiTools.extractToControl', extractToControl),
+    );
+
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider(
+            { language: 'xaml' },
+            new ExtractToContentViewProvider(),
+            {
+                providedCodeActionKinds: [vscode.CodeActionKind.Refactor]
+            }
+        )
     );
 }
 
-export function deactivate() {}
+export function deactivate() { }
 
 
 async function detectMauiProject(): Promise<boolean> {

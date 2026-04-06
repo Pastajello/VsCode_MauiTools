@@ -1,5 +1,10 @@
 // PURE LOGIC — ZERO vscode
 
+export type BindingInfo = {
+    prop: string;
+    path: string;
+};
+
 export function extractXmlns(selectedText: string, docText: string) {
 
     const usedPrefixes = new Set<string>();
@@ -34,10 +39,13 @@ export function extractXmlns(selectedText: string, docText: string) {
     return { extraXmlns, missingPrefixes };
 }
 
-export function extractBindings(text: string): string[] {
+// =========================
+// BINDINGS
+// =========================
 
-    const props: string[] = [];
+export function extractBindings(text: string): BindingInfo[] {
 
+    const result: BindingInfo[] = [];
     const bindings = extractBindingBlocks(text);
 
     for (const contentRaw of bindings) {
@@ -45,9 +53,10 @@ export function extractBindings(text: string): string[] {
         let content = contentRaw.trim();
         if (!content) continue;
 
-        // =========================
-        // SAFE SPLIT (ignore commas inside {})
-        // =========================
+        const hasSource = content.includes('Source=');
+        const hasPath = content.includes('Path=');
+
+        if (hasSource && !hasPath) continue;
 
         const parts: string[] = [];
         let current = '';
@@ -69,10 +78,6 @@ export function extractBindings(text: string): string[] {
 
         if (current) parts.push(current.trim());
 
-        // =========================
-        // FIND PATH
-        // =========================
-
         let pathCandidate: string | undefined;
 
         for (const part of parts) {
@@ -92,10 +97,6 @@ export function extractBindings(text: string): string[] {
 
         if (!pathCandidate) continue;
 
-        // =========================
-        // CLEAN PATH
-        // =========================
-
         pathCandidate = pathCandidate
             .replace(/\[.*?\]/g, '')
             .replace(/\?\./g, '.')
@@ -103,19 +104,26 @@ export function extractBindings(text: string): string[] {
 
         if (pathCandidate === '.' || pathCandidate === '') continue;
 
-        // =========================
-        // LAST SEGMENT
-        // =========================
-
         const segments = pathCandidate.split('.');
         const last = segments[segments.length - 1];
 
         if (!last) continue;
 
-        props.push(last);
+        result.push({
+            prop: last,
+            path: pathCandidate
+        });
     }
 
-    return [...new Set(props)];
+    const map = new Map<string, string>();
+
+    for (const b of result) {
+        if (!map.has(b.prop)) {
+            map.set(b.prop, b.path);
+        }
+    }
+
+    return Array.from(map.entries()).map(([prop, path]) => ({ prop, path }));
 }
 
 function extractBindingBlocks(text: string): string[] {
@@ -126,7 +134,6 @@ function extractBindingBlocks(text: string): string[] {
 
         if (text[i] !== '{') continue;
 
-        // sprawdź czy to Binding
         const rest = text.slice(i);
         const match = rest.match(/^\{\s*Binding\b/);
 
@@ -146,27 +153,30 @@ function extractBindingBlocks(text: string): string[] {
         if (depth === 0) {
             const full = text.slice(i, j + 1);
 
-            // usuń "{Binding" i końcowe "}"
             const inner = full
                 .replace(/^\{\s*Binding\s*/, '')
                 .slice(0, -1);
 
             results.push(inner);
 
-            i = j; // skip dalej
+            i = j;
         }
     }
 
     return results;
 }
 
+// =========================
+// GENERATORS
+// =========================
 
-
-export function generateBindableProperties(bindings: string[], controlName: string): string {
+export function generateBindableProperties(bindings: BindingInfo[], controlName: string): string {
 
     if (bindings.length === 0) return '';
 
-    return bindings.map(name => {
+    return bindings.map(b => {
+
+        const name = b.prop;
 
         return `
 public static readonly BindableProperty ${name}Property =
@@ -212,4 +222,27 @@ public partial class ${name} : ContentView
 ${props}
 }
 `.trim();
+}
+
+// =========================
+// CONTROL USAGE
+// =========================
+
+export function generateControlUsage(
+    prefix: string,
+    name: string,
+    bindings: BindingInfo[]
+): string {
+
+    if (bindings.length === 0) {
+        return `<${prefix}:${name} />`;
+    }
+
+    const props = bindings
+        .map(b => `${b.prop}="{Binding ${b.path}}"`)
+        .join('\n    ');
+
+    return `
+<${prefix}:${name}
+    ${props} />`.trim();
 }

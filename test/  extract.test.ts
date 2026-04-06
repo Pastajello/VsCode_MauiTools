@@ -20,7 +20,10 @@ describe('XAML Extract Logic', () => {
             <Label Text="{Binding Subtitle}" />
         `;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title', 'Subtitle']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' },
+            { prop: 'Subtitle', path: 'Subtitle' }
+        ]);
     });
 
     it('should handle multiline binding', () => {
@@ -30,7 +33,9 @@ describe('XAML Extract Logic', () => {
             }" />
         `;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' }
+        ]);
     });
 
     // =========================
@@ -56,7 +61,9 @@ describe('XAML Extract Logic', () => {
     it('should support indexer access', () => {
         const input = `{Binding Details.Items[0].Name}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Name']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Name', path: 'Details.Items.Name' }
+        ]);
     });
 
     // =========================
@@ -66,7 +73,9 @@ describe('XAML Extract Logic', () => {
     it('should support null-safe operator', () => {
         const input = `{Binding Details?.Name}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Name']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Name', path: 'Details.Name' }
+        ]);
     });
 
     // =========================
@@ -76,7 +85,9 @@ describe('XAML Extract Logic', () => {
     it('should support Converter', () => {
         const input = `{Binding Title, Converter={StaticResource MyConverter}}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' }
+        ]);
     });
 
     // =========================
@@ -86,7 +97,9 @@ describe('XAML Extract Logic', () => {
     it('should support StringFormat', () => {
         const input = `{Binding Path=Title, StringFormat='{}Hello {0}'}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' }
+        ]);
     });
 
     // =========================
@@ -96,13 +109,17 @@ describe('XAML Extract Logic', () => {
     it('should support RelativeSource with Path', () => {
         const input = `{Binding Source={RelativeSource AncestorType=ContentPage}, Path=Title}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' }
+        ]);
     });
 
     it('should support x:Reference with Path', () => {
         const input = `{Binding Source={x:Reference myView}, Path=Title}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' }
+        ]);
     });
 
     // =========================
@@ -112,13 +129,17 @@ describe('XAML Extract Logic', () => {
     it('should support Path=Title', () => {
         const input = `{Binding Path=Title}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' }
+        ]);
     });
 
     it('should support Path with nested property', () => {
         const input = `{Binding Path=Details.Description}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Description']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Description', path: 'Details.Description' }
+        ]);
     });
 
     // =========================
@@ -128,15 +149,18 @@ describe('XAML Extract Logic', () => {
     it('should support binding with Mode', () => {
         const input = `{Binding Title, Mode=TwoWay}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' }
+        ]);
     });
 
     it('should support binding with multiple parameters', () => {
         const input = `{Binding Details.Description, Mode=OneWay}`;
         const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Description']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Description', path: 'Details.Description' }
+        ]);
     });
-
 
     // =========================
     // BINDINGS
@@ -151,7 +175,10 @@ describe('XAML Extract Logic', () => {
 
         const result = extractBindings(input);
 
-        assert.deepStrictEqual(result, ['Title', 'Description']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' },
+            { prop: 'Description', path: 'Details.Description' }
+        ]);
     });
 
     it('should extract last segment from deep binding', () => {
@@ -160,7 +187,9 @@ describe('XAML Extract Logic', () => {
 
         const result = extractBindings(input);
 
-        assert.deepStrictEqual(result, ['C']);
+        assert.deepStrictEqual(result, [
+            { prop: 'C', path: 'A.B.C' }
+        ]);
     });
 
     it('should ignore duplicates', () => {
@@ -172,13 +201,9 @@ describe('XAML Extract Logic', () => {
 
         const result = extractBindings(input);
 
-        assert.deepStrictEqual(result, ['Title']);
-    });
-
-    it('should support RelativeSource with Path', () => {
-        const input = `{Binding Source={RelativeSource AncestorType=ContentPage}, Path=Title}`;
-        const result = extractBindings(input);
-        assert.deepStrictEqual(result, ['Title']);
+        assert.deepStrictEqual(result, [
+            { prop: 'Title', path: 'Title' }
+        ]);
     });
 
     // =========================
@@ -187,7 +212,10 @@ describe('XAML Extract Logic', () => {
 
     it('should generate bindable properties', () => {
 
-        const result = generateBindableProperties(['Title'], 'MyControl');
+        const result = generateBindableProperties(
+            [{ prop: 'Title', path: 'Title' }],
+            'MyControl'
+        );
 
         assert.ok(result.includes('TitleProperty'));
         assert.ok(result.includes('typeof(object)'));
@@ -270,7 +298,10 @@ describe('XAML Extract Logic', () => {
 
     it('should generate code-behind with properties', () => {
 
-        const props = generateBindableProperties(['Title'], 'MyControl');
+        const props = generateBindableProperties(
+            [{ prop: 'Title', path: 'Title' }],
+            'MyControl'
+        );
 
         const result = generateCodeBehind('App.Controls', 'MyControl', props);
 

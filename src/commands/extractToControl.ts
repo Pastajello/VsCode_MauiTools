@@ -7,7 +7,9 @@ import {
     extractBindings,
     generateBindableProperties,
     generateXaml,
-    generateCodeBehind
+    generateCodeBehind,
+    generateControlUsage,
+    BindingInfo
 } from '../core/extractLogic';
 
 export async function extractToControl() {
@@ -37,10 +39,6 @@ export async function extractToControl() {
 
     const docText = editor.document.getText();
 
-    // =========================
-    // LOGIC (PURE)
-    // =========================
-
     const { extraXmlns, missingPrefixes } = extractXmlns(selectedText, docText);
 
     const bindings = extractBindings(selectedText);
@@ -51,22 +49,10 @@ export async function extractToControl() {
 
     const csContent = generateCodeBehind(namespace, name, bindableProperties);
 
-    // =========================
-    // FILES
-    // =========================
-
     await writeFile(xamlPath, xamlContent);
     await writeFile(csPath, csContent);
 
-    // =========================
-    // EDIT ORIGINAL
-    // =========================
-
-    await replaceWithControl(editor, selection, docText, namespace, name);
-
-    // =========================
-    // FEEDBACK
-    // =========================
+    await replaceWithControl(editor, selection, docText, namespace, name, bindings);
 
     if (missingPrefixes.length > 0) {
         vscode.window.showWarningMessage(
@@ -77,11 +63,9 @@ export async function extractToControl() {
     }
 }
 
-//
 // =========================
-// UI HELPERS
+// HELPERS
 // =========================
-//
 
 async function askForName(): Promise<string | undefined> {
     return vscode.window.showInputBox({
@@ -102,18 +86,17 @@ async function pickFolder(docUri: vscode.Uri): Promise<vscode.Uri | undefined> {
     return result?.[0];
 }
 
-//
 // =========================
 // REPLACE
 // =========================
-//
 
 async function replaceWithControl(
     editor: vscode.TextEditor,
     selection: vscode.Selection,
     docText: string,
     namespace: string,
-    name: string
+    name: string,
+    bindings: BindingInfo[]
 ) {
 
     await editor.edit(editBuilder => {
@@ -164,15 +147,15 @@ async function replaceWithControl(
             }
         }
 
-        editBuilder.replace(selection, `<${prefixToUse}:${name} />`);
+        const usage = generateControlUsage(prefixToUse, name, bindings);
+
+        editBuilder.replace(selection, usage);
     });
 }
 
-//
 // =========================
 // FILE
 // =========================
-//
 
 async function writeFile(pathStr: string, content: string) {
     await vscode.workspace.fs.writeFile(

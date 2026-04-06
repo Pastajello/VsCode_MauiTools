@@ -48,7 +48,7 @@
       ],
       "editor/context": [
         {
-          "command": "mauiTools.extractToContentView",
+          "command": "mauiTools.extractToControl",
           "when": "editorHasSelection && isMauiProject",
           "group": "refactor"
         }
@@ -74,8 +74,8 @@
         "title": "ContentView XAML"
       },
       {
-        "command": "mauiTools.extractToContentView",
-        "title": "Extract to ContentView"
+        "command": "mauiTools.extractToControl",
+        "title": "Extract to Control"
       }
     ],
     "languages": [

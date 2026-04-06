@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { addContentPage } from './commands/addContentPage';
 import { addContentView } from './commands/addContentView';
-import { extractToContentView } from './commands/extractToContentView';
+import { extractToControl } from './commands/extractToControl';
 
 import { ExtractToContentViewProvider } from './codeActions/extractProvider';
 
@@ -15,7 +15,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('mauiTools.addContentPage', addContentPage),
         vscode.commands.registerCommand('mauiTools.addContentView', addContentView),
-        vscode.commands.registerCommand('mauiTools.extractToContentView', extractToContentView),
+        vscode.commands.registerCommand('mauiTools.extractToControl', extractToControl),
     );
 
     context.subscriptions.push(

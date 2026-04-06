@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { getNamespace } from '../utils/mauiHelper';
 
-export async function extractToContentView() {
+export async function extractToControl() {
 
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;

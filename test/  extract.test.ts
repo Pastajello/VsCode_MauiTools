@@ -175,15 +175,10 @@ describe('XAML Extract Logic', () => {
         assert.deepStrictEqual(result, ['Title']);
     });
 
-    it('should ignore complex bindings (RelativeSource)', () => {
-
-        const input = `
-            <Label Text="{Binding Source={RelativeSource AncestorType=ContentPage}, Path=Title}" />
-        `;
-
+    it('should support RelativeSource with Path', () => {
+        const input = `{Binding Source={RelativeSource AncestorType=ContentPage}, Path=Title}`;
         const result = extractBindings(input);
-
-        assert.deepStrictEqual(result, []);
+        assert.deepStrictEqual(result, ['Title']);
     });
 
     // =========================

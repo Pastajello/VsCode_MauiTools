@@ -1,5 +1,32 @@
 // PURE LOGIC — ZERO vscode
 
+export function rewriteBindings(
+    xaml: string,
+    bindings: BindingInfo[]
+): string {
+
+    let result = xaml;
+
+    for (const b of bindings) {
+
+        if (b.prop === b.path) continue;
+
+        const safePath = b.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        const regex = new RegExp(
+            `\\{\\s*Binding([^}]*)${safePath}([^}]*)\\}`,
+            'g'
+        );
+
+        result = result.replace(regex, (match) => {
+            return match.replace(b.path, b.prop);
+        });
+    }
+
+    return result;
+}
+
+
 export type BindingInfo = {
     prop: string;
     path: string;
@@ -196,16 +223,80 @@ public object ${name}
     }).join('\n\n');
 }
 
-export function generateXaml(fullClass: string, content: string, extraXmlns: string): string {
+export function resolveNamespacePrefix(
+    namespace: string,
+    extraXmlns: string
+): { prefix: string; xmlnsToAdd: string } {
+
+    const xmlnsRegex = /xmlns:(\w+)="clr-namespace:([^"]+)"/g;
+
+    let match;
+
+
+    while ((match = xmlnsRegex.exec(extraXmlns)) !== null) {
+        const prefix = match[1];
+        const ns = match[2];
+
+        if (ns === namespace) {
+            return { prefix, xmlnsToAdd: '' };
+        }
+    }
+
+
+    const used = new Set<string>();
+
+    while ((match = xmlnsRegex.exec(extraXmlns)) !== null) {
+        used.add(match[1]);
+    }
+
+
+    const base = (namespace.split('.').pop() || 'local').toLowerCase();
+
+    let prefix = base;
+    let i = 1;
+
+    while (used.has(prefix)) {
+        prefix = `${base}${i++}`;
+    }
+
+
+    const xmlns = `xmlns:${prefix}="clr-namespace:${namespace}"`;
+
+    return {
+        prefix,
+        xmlnsToAdd: xmlns
+    };
+}
+
+
+
+export function generateXaml(
+    fullClass: string,
+    content: string,
+    extraXmlns: string
+): string {
+
+    const namespace = fullClass.substring(0, fullClass.lastIndexOf('.'));
+    const className = fullClass.substring(fullClass.lastIndexOf('.') + 1);
+
+    const { prefix, xmlnsToAdd } = resolveNamespacePrefix(namespace, extraXmlns);
+
+    const xmlnsLine = xmlnsToAdd
+        ? `\n             ${xmlnsToAdd}`
+        : '';
 
     return `
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"${extraXmlns}
-             x:Class="${fullClass}">
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"${xmlnsLine}${extraXmlns}
+             x:Class="${fullClass}"
+             x:DataType="${prefix}:${className}">
 ${content}
 </ContentView>
 `.trim();
 }
+
+
+
 
 export function generateCodeBehind(namespace: string, name: string, props: string): string {
 

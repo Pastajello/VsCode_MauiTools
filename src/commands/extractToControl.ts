@@ -9,6 +9,7 @@ import {
     generateXaml,
     generateCodeBehind,
     generateControlUsage,
+    rewriteBindings,
     BindingInfo
 } from '../core/extractLogic';
 
@@ -39,20 +40,38 @@ export async function extractToControl() {
 
     const docText = editor.document.getText();
 
+    // =========================
+    // LOGIC
+    // =========================
+
     const { extraXmlns, missingPrefixes } = extractXmlns(selectedText, docText);
 
     const bindings = extractBindings(selectedText);
 
     const bindableProperties = generateBindableProperties(bindings, name);
 
-    const xamlContent = generateXaml(fullClass, selectedText, extraXmlns);
+    const rewrittenXaml = rewriteBindings(selectedText, bindings);
+
+    const xamlContent = generateXaml(fullClass, rewrittenXaml, extraXmlns);
 
     const csContent = generateCodeBehind(namespace, name, bindableProperties);
+
+    // =========================
+    // FILES
+    // =========================
 
     await writeFile(xamlPath, xamlContent);
     await writeFile(csPath, csContent);
 
+    // =========================
+    // EDIT ORIGINAL
+    // =========================
+
     await replaceWithControl(editor, selection, docText, namespace, name, bindings);
+
+    // =========================
+    // FEEDBACK
+    // =========================
 
     if (missingPrefixes.length > 0) {
         vscode.window.showWarningMessage(

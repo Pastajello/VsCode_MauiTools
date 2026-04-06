@@ -36,26 +36,74 @@ export function extractXmlns(selectedText: string, docText: string) {
 
 export function extractBindings(text: string): string[] {
 
-     const matches = [...text.matchAll(/\{Binding\s+([^}]+)\}/g)];
+    const matches = [...text.matchAll(/\{Binding\s+([^}]+)\}/gs)];
 
     const props: string[] = [];
 
     for (const match of matches) {
 
-        const content = match[1].trim();
+        let content = match[1].trim();
 
-        // Source=..., Path=..., Mode=...
-        if (content.includes('=')) continue;
+        if (!content) continue;
 
-        // np. Details.Description → Description
-        const parts = content.split('.');
-        const last = parts[parts.length - 1];
+        // =========================
+        // 1. split po przecinku (parametry)
+        // =========================
+
+        const parts = content.split(',').map(p => p.trim());
+
+        let pathCandidate: string | undefined;
+
+        for (const part of parts) {
+
+            // Path=Something
+            if (part.startsWith('Path=')) {
+                pathCandidate = part.replace('Path=', '').trim();
+                break;
+            }
+
+            // Source=... → ignorujemy
+            if (part.startsWith('Source=')) {
+                continue;
+            }
+
+            // pierwszy "czysty" binding (bez =)
+            if (!part.includes('=')) {
+                pathCandidate = part;
+                break;
+            }
+        }
+
+        if (!pathCandidate) continue;
+
+        // =========================
+        // 2. clean path
+        // =========================
+
+        // usuń indexery [0]
+        pathCandidate = pathCandidate.replace(/\[.*?\]/g, '');
+
+        // usuń null-safe operator
+        pathCandidate = pathCandidate.replace(/\?\./g, '.');
+
+        // edge case: "." albo ""
+        if (pathCandidate === '.' || pathCandidate === '') continue;
+
+        // =========================
+        // 3. weź ostatni segment
+        // =========================
+
+        const segments = pathCandidate.split('.');
+        const last = segments[segments.length - 1];
+
+        if (!last) continue;
 
         props.push(last);
     }
 
     return [...new Set(props)];
 }
+
 
 export function generateBindableProperties(bindings: string[], controlName: string): string {
 

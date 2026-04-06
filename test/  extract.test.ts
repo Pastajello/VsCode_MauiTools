@@ -11,6 +11,134 @@ import {
 describe('XAML Extract Logic', () => {
 
     // =========================
+    // MULTIPLE BINDINGS
+    // =========================
+
+    it('should extract multiple bindings', () => {
+        const input = `
+            <Label Text="{Binding Title}" />
+            <Label Text="{Binding Subtitle}" />
+        `;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Title', 'Subtitle']);
+    });
+
+    it('should handle multiline binding', () => {
+        const input = `
+            <Label Text="{
+                Binding Title
+            }" />
+        `;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Title']);
+    });
+
+    // =========================
+    // EDGE CASES
+    // =========================
+
+    it('should ignore empty binding', () => {
+        const input = `{Binding}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, []);
+    });
+
+    it('should ignore dot binding', () => {
+        const input = `{Binding .}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, []);
+    });
+
+    // =========================
+    // INDEXERS
+    // =========================
+
+    it('should support indexer access', () => {
+        const input = `{Binding Details.Items[0].Name}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Name']);
+    });
+
+    // =========================
+    // NULL SAFE
+    // =========================
+
+    it('should support null-safe operator', () => {
+        const input = `{Binding Details?.Name}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Name']);
+    });
+
+    // =========================
+    // CONVERTER
+    // =========================
+
+    it('should support Converter', () => {
+        const input = `{Binding Title, Converter={StaticResource MyConverter}}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Title']);
+    });
+
+    // =========================
+    // STRING FORMAT
+    // =========================
+
+    it('should support StringFormat', () => {
+        const input = `{Binding Path=Title, StringFormat='{}Hello {0}'}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Title']);
+    });
+
+    // =========================
+    // RELATIVE SOURCE
+    // =========================
+
+    it('should support RelativeSource with Path', () => {
+        const input = `{Binding Source={RelativeSource AncestorType=ContentPage}, Path=Title}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Title']);
+    });
+
+    it('should support x:Reference with Path', () => {
+        const input = `{Binding Source={x:Reference myView}, Path=Title}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Title']);
+    });
+
+    // =========================
+    // PATH
+    // =========================
+
+    it('should support Path=Title', () => {
+        const input = `{Binding Path=Title}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Title']);
+    });
+
+    it('should support Path with nested property', () => {
+        const input = `{Binding Path=Details.Description}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Description']);
+    });
+
+    // =========================
+    // PARAMETERS
+    // =========================
+
+    it('should support binding with Mode', () => {
+        const input = `{Binding Title, Mode=TwoWay}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Title']);
+    });
+
+    it('should support binding with multiple parameters', () => {
+        const input = `{Binding Details.Description, Mode=OneWay}`;
+        const result = extractBindings(input);
+        assert.deepStrictEqual(result, ['Description']);
+    });
+
+
+    // =========================
     // BINDINGS
     // =========================
 

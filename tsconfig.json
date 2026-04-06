@@ -2,7 +2,8 @@
   "compilerOptions": {
     "types": [
       "node",
-      "vscode"
+      "vscode",
+      "mocha"
     ],
     "target": "ES2020",
     "module": "commonjs",
@@ -15,6 +16,7 @@
     "ignoreDeprecations": "6.0"
   },
   "include": [
-    "src"
+    "src",
+    "test"
   ]
 }

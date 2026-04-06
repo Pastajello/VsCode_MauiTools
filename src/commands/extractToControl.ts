@@ -15,40 +15,98 @@ export async function extractToControl() {
         return;
     }
 
-    // --- NAME ---
-    const name = await vscode.window.showInputBox({
-        prompt: 'Name of new ContentView',
-        value: 'MyControl'
-    });
-
+    const name = await askForName();
     if (!name) return;
 
-    const docUri = editor.document.uri;
+    const folderUri = await pickFolder(editor.document.uri);
+    if (!folderUri) return;
 
-    // --- PICK TARGET FOLDER ---
-    const folderPick = await vscode.window.showOpenDialog({
-        defaultUri: vscode.Uri.file(path.dirname(docUri.fsPath)),
-        canSelectFolders: true,
-        canSelectFiles: false,
-        canSelectMany: false,
-        openLabel: 'Select target folder for ContentView'
-    });
-
-    if (!folderPick || folderPick.length === 0) return;
-
-    const folderUri = folderPick[0];
-    const folderPath = folderUri.fsPath;
-
-    // --- NAMESPACE ---
     const namespace = await getNamespace(folderUri);
     const fullClass = `${namespace}.${name}`;
 
-    const xamlPath = path.join(folderPath, `${name}.xaml`);
-    const csPath = path.join(folderPath, `${name}.xaml.cs`);
+    const xamlPath = path.join(folderUri.fsPath, `${name}.xaml`);
+    const csPath = path.join(folderUri.fsPath, `${name}.xaml.cs`);
+
+    const docText = editor.document.getText();
 
     // =========================
-    //  EXTRACT USED XMLNS
+    // ETAPY
     // =========================
+
+    const { extraXmlns, missingPrefixes } = extractXmlns(selectedText, docText);
+
+    const bindings = extractBindings(selectedText);
+
+    const bindableProperties = generateBindableProperties(bindings, name);
+
+    const xamlContent = generateXaml(fullClass, selectedText, extraXmlns);
+
+    const csContent = generateCodeBehind(namespace, name, bindableProperties);
+
+    // =========================
+    // CREATE FILES
+    // =========================
+
+    await writeFile(xamlPath, xamlContent);
+    await writeFile(csPath, csContent);
+
+    // =========================
+    // EDIT ORIGINAL
+    // =========================
+
+    await replaceWithControl(editor, selection, docText, namespace, name);
+
+    // =========================
+    // FEEDBACK
+    // =========================
+
+    if (missingPrefixes.length > 0) {
+        vscode.window.showWarningMessage(
+            `Missing xmlns for: ${missingPrefixes.join(', ')}`
+        );
+    } else {
+        vscode.window.showInformationMessage(`Created ${name}`);
+    }
+}
+
+//
+// =========================
+// ETAP 1: NAME
+// =========================
+//
+
+async function askForName(): Promise<string | undefined> {
+    return vscode.window.showInputBox({
+        prompt: 'Name of new ContentView',
+        value: 'MyControl'
+    });
+}
+
+//
+// =========================
+// ETAP 2: FOLDER
+// =========================
+//
+
+async function pickFolder(docUri: vscode.Uri): Promise<vscode.Uri | undefined> {
+
+    const result = await vscode.window.showOpenDialog({
+        defaultUri: vscode.Uri.file(path.dirname(docUri.fsPath)),
+        canSelectFolders: true,
+        canSelectFiles: false,
+        canSelectMany: false
+    });
+
+    return result?.[0];
+}
+
+//
+// =========================
+// ETAP 3: XMLNS
+// =========================
+//
+
+export function extractXmlns(selectedText: string, docText: string) {
 
     const usedPrefixes = new Set<string>();
     const prefixRegex = /\b([a-zA-Z_][\w]*):/g;
@@ -56,16 +114,11 @@ export async function extractToControl() {
     let match;
     while ((match = prefixRegex.exec(selectedText)) !== null) {
         const prefix = match[1];
-
-        if (prefix === 'x') continue;
-
-        usedPrefixes.add(prefix);
+        if (prefix !== 'x') usedPrefixes.add(prefix);
     }
 
-    const docText = editor.document.getText();
-
-    const xmlnsRegex = /xmlns:(\w+)="([^"]+)"/g;
     const namespaceMap = new Map<string, string>();
+    const xmlnsRegex = /xmlns:(\w+)="([^"]+)"/g;
 
     while ((match = xmlnsRegex.exec(docText)) !== null) {
         namespaceMap.set(match[1], match[2]);
@@ -84,28 +137,80 @@ export async function extractToControl() {
         }
     }
 
-    // =========================
-    //  CREATE XAML
-    // =========================
+    return { extraXmlns, missingPrefixes };
+}
 
-    const wrapped = `
+//
+// =========================
+// ETAP 4: BINDINGS
+// =========================
+//
+
+export function extractBindings(text: string): string[] {
+
+    const matches = [...text.matchAll(/\{Binding\s+([A-Za-z0-9_]+)/g)];
+
+    const props = matches.map(m => m[1]);
+
+    return [...new Set(props)]; // unique
+}
+
+//
+// =========================
+// ETAP 5: BINDABLE PROPERTIES
+// =========================
+//
+
+export function generateBindableProperties(bindings: string[], controlName: string): string {
+
+    if (bindings.length === 0) return '';
+
+    return bindings.map(name => {
+
+        return `
+public static readonly BindableProperty ${name}Property =
+    BindableProperty.Create(
+        nameof(${name}),
+        typeof(object),
+        typeof(${controlName})
+    );
+
+public object ${name}
+{
+    get => GetValue(${name}Property);
+    set => SetValue(${name}Property, value);
+}
+`.trim();
+
+    }).join('\n\n');
+}
+
+//
+// =========================
+// ETAP 6: XAML
+// =========================
+//
+
+export function generateXaml(fullClass: string, content: string, extraXmlns: string): string {
+
+    return `
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"${extraXmlns}
              x:Class="${fullClass}">
-${selectedText}
+${content}
 </ContentView>
 `.trim();
+}
 
-    await vscode.workspace.fs.writeFile(
-        vscode.Uri.file(xamlPath),
-        Buffer.from(wrapped, 'utf8')
-    );
+//
+// =========================
+// ETAP 7: CODE BEHIND
+// =========================
+//
 
-    // =========================
-    //  CREATE CODE BEHIND
-    // =========================
+function generateCodeBehind(namespace: string, name: string, props: string): string {
 
-    const cs = `
+    return `
 namespace ${namespace};
 
 public partial class ${name} : ContentView
@@ -114,17 +219,25 @@ public partial class ${name} : ContentView
     {
         InitializeComponent();
     }
+
+${props}
 }
 `.trim();
+}
 
-    await vscode.workspace.fs.writeFile(
-        vscode.Uri.file(csPath),
-        Buffer.from(cs, 'utf8')
-    );
+//
+// =========================
+// ETAP 8: REPLACE
+// =========================
+//
 
-    // =========================
-    //  EDIT ORIGINAL FILE
-    // =========================
+async function replaceWithControl(
+    editor: vscode.TextEditor,
+    selection: vscode.Selection,
+    docText: string,
+    namespace: string,
+    name: string
+) {
 
     await editor.edit(editBuilder => {
 
@@ -132,27 +245,24 @@ public partial class ${name} : ContentView
 
         let match;
         let foundPrefix: string | null = null;
-        const usedPrefixesInDoc = new Set<string>();
+        const usedPrefixes = new Set<string>();
 
         while ((match = namespaceRegex.exec(docText)) !== null) {
             const prefix = match[1];
             const ns = match[2];
 
-            usedPrefixesInDoc.add(prefix);
+            usedPrefixes.add(prefix);
 
             if (ns === namespace) {
                 foundPrefix = prefix;
             }
         }
 
-        // --- decide prefix ---
         let prefixToUse = foundPrefix;
 
         if (!prefixToUse) {
 
-            const lastPart = namespace.split('.').pop()?.toLowerCase() || 'controls';
-
-            let base = lastPart;
+            let base = namespace.split('.').pop()?.toLowerCase() || 'controls';
 
             if (!['views', 'controls', 'components'].includes(base)) {
                 base = 'controls';
@@ -160,10 +270,9 @@ public partial class ${name} : ContentView
 
             prefixToUse = base;
 
-            let counter = 1;
-            while (usedPrefixesInDoc.has(prefixToUse)) {
-                prefixToUse = `${base}${counter}`;
-                counter++;
+            let i = 1;
+            while (usedPrefixes.has(prefixToUse)) {
+                prefixToUse = `${base}${i++}`;
             }
 
             const xmlns = `xmlns:${prefixToUse}="clr-namespace:${namespace}"`;
@@ -171,28 +280,26 @@ public partial class ${name} : ContentView
             const rootMatch = docText.match(/<[^!?][^>]+/);
 
             if (rootMatch && rootMatch.index !== undefined) {
-
-                const insertPos = editor.document.positionAt(
+                const pos = editor.document.positionAt(
                     rootMatch.index + rootMatch[0].length
                 );
-
-                editBuilder.insert(insertPos, ` ${xmlns}`);
+                editBuilder.insert(pos, ` ${xmlns}`);
             }
         }
 
-        // --- replace selection ---
         editBuilder.replace(selection, `<${prefixToUse}:${name} />`);
     });
+}
 
-    // =========================
-    //  FEEDBACK
-    // =========================
+//
+// =========================
+// UTIL
+// =========================
+//
 
-    if (missingPrefixes.length > 0) {
-        vscode.window.showWarningMessage(
-            `Missing xmlns for: ${missingPrefixes.join(', ')}`
-        );
-    } else {
-        vscode.window.showInformationMessage(`Created ${name}`);
-    }
+async function writeFile(pathStr: string, content: string) {
+    await vscode.workspace.fs.writeFile(
+        vscode.Uri.file(pathStr),
+        Buffer.from(content, 'utf8')
+    );
 }

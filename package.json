@@ -16,6 +16,7 @@
     "vscode": "^1.110.0"
   },
   "scripts": {
+    "test": "mocha -r ts-node/register test/**/*.test.ts",
     "build": "npm run build:grammar && tsc",
     "watch": "npm run build:grammar && concurrently \"npm:watch:ts\" \"npm:watch:grammar\"",
     "watch:ts": "tsc -w",
@@ -100,12 +101,16 @@
     ]
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^25.5.2",
     "@types/vscode": "^1.110.0",
+    "assert": "^2.1.0",
     "chokidar-cli": "^3.0.0",
     "concurrently": "^9.2.1",
     "esbuild": "^0.28.0",
+    "mocha": "^11.7.5",
     "strip-json-comments": "^5.0.3",
+    "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
   }
 }

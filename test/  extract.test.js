@@ -229,4 +229,70 @@ describe('XAML Extract Logic', () => {
         assert_1.default.ok(result.includes('InitializeComponent()'));
         assert_1.default.ok(result.includes('TitleProperty'));
     });
+    // =========================
+    // NAMESPACE PREFIX
+    // =========================
+    describe('Namespace Prefix Resolution', () => {
+        it('should generate prefix from last namespace segment', () => {
+            const { prefix } = (0, extractLogic_1.resolveNamespacePrefix)('Sample.Controls', '');
+            assert_1.default.strictEqual(prefix, 'controls');
+        });
+        it('should reuse existing namespace prefix', () => {
+            const extra = `xmlns:controls="clr-namespace:Sample.Controls"`;
+            const result = (0, extractLogic_1.resolveNamespacePrefix)('Sample.Controls', extra);
+            assert_1.default.strictEqual(result.prefix, 'controls');
+            assert_1.default.strictEqual(result.xmlnsToAdd, '');
+        });
+        it('should increment prefix if already used', () => {
+            const extra = `
+            xmlns:controls="clr-namespace:Sample.Controls"
+            xmlns:controls1="clr-namespace:Sample.Views.Controls"
+        `;
+            const result = (0, extractLogic_1.resolveNamespacePrefix)('Sample.Other.Controls', extra);
+            assert_1.default.strictEqual(result.prefix, 'controls2');
+        });
+        it('should handle same suffix from different namespaces', () => {
+            const extra = `
+            xmlns:controls="clr-namespace:Sample.Controls"
+        `;
+            const result = (0, extractLogic_1.resolveNamespacePrefix)('Another.Controls', extra);
+            assert_1.default.strictEqual(result.prefix, 'controls1');
+        });
+    });
+    // =========================
+    // XAML + DATATYPE
+    // =========================
+    describe('XAML with DataType', () => {
+        it('should generate xaml with x:DataType', () => {
+            const result = (0, extractLogic_1.generateXaml)('Sample.Controls.MyControl', '<Label />', '');
+            assert_1.default.ok(result.includes('x:DataType="controls:MyControl"'));
+            assert_1.default.ok(result.includes('xmlns:controls="clr-namespace:Sample.Controls"'));
+        });
+        it('should not duplicate xmlns for same namespace', () => {
+            const extra = `
+            xmlns:controls="clr-namespace:Sample.Controls"
+        `;
+            const result = (0, extractLogic_1.generateXaml)('Sample.Controls.MyControl', '<Label />', extra);
+            const count = (result.match(/xmlns:controls/g) || []).length;
+            assert_1.default.strictEqual(count, 1);
+        });
+    });
+    // =========================
+    // CONTROL USAGE (BINDINGS TRANSFER)
+    // =========================
+    describe('Control Usage Generation', () => {
+        it('should generate control usage with bindings', () => {
+            const usage = (0, extractLogic_1.generateControlUsage)('controls', 'MyControl', [
+                { prop: 'Title', path: 'Title' },
+                { prop: 'Description', path: 'Details.Description' }
+            ]);
+            assert_1.default.ok(usage.includes('<controls:MyControl'));
+            assert_1.default.ok(usage.includes('Title="{Binding Title}"'));
+            assert_1.default.ok(usage.includes('Description="{Binding Details.Description}"'));
+        });
+        it('should generate self-closing control when no bindings', () => {
+            const usage = (0, extractLogic_1.generateControlUsage)('controls', 'MyControl', []);
+            assert_1.default.strictEqual(usage.trim(), '<controls:MyControl />');
+        });
+    });
 });

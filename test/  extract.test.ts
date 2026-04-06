@@ -5,7 +5,9 @@ import {
     generateBindableProperties,
     extractXmlns,
     generateXaml,
-    generateCodeBehind
+    generateCodeBehind,
+    resolveNamespacePrefix,
+    generateControlUsage
 } from '../src/core/extractLogic';
 
 describe('XAML Extract Logic', () => {
@@ -310,5 +312,139 @@ describe('XAML Extract Logic', () => {
         assert.ok(result.includes('InitializeComponent()'));
         assert.ok(result.includes('TitleProperty'));
     });
+
+    // =========================
+    // NAMESPACE PREFIX
+    // =========================
+
+
+    describe('Namespace Prefix Resolution', () => {
+
+        it('should generate prefix from last namespace segment', () => {
+
+            const { prefix } = resolveNamespacePrefix(
+                'Sample.Controls',
+                ''
+            );
+
+            assert.strictEqual(prefix, 'controls');
+        });
+
+        it('should reuse existing namespace prefix', () => {
+
+            const extra = `xmlns:controls="clr-namespace:Sample.Controls"`;
+
+            const result = resolveNamespacePrefix(
+                'Sample.Controls',
+                extra
+            );
+
+            assert.strictEqual(result.prefix, 'controls');
+            assert.strictEqual(result.xmlnsToAdd, '');
+        });
+
+        it('should increment prefix if already used', () => {
+
+            const extra = `
+            xmlns:controls="clr-namespace:Sample.Controls"
+            xmlns:controls1="clr-namespace:Sample.Views.Controls"
+        `;
+
+            const result = resolveNamespacePrefix(
+                'Sample.Other.Controls',
+                extra
+            );
+
+            assert.strictEqual(result.prefix, 'controls2');
+        });
+
+        it('should handle same suffix from different namespaces', () => {
+
+            const extra = `
+            xmlns:controls="clr-namespace:Sample.Controls"
+        `;
+
+            const result = resolveNamespacePrefix(
+                'Another.Controls',
+                extra
+            );
+
+            assert.strictEqual(result.prefix, 'controls1');
+        });
+
+    });
+
+    // =========================
+    // XAML + DATATYPE
+    // =========================
+
+    describe('XAML with DataType', () => {
+
+        it('should generate xaml with x:DataType', () => {
+
+            const result = generateXaml(
+                'Sample.Controls.MyControl',
+                '<Label />',
+                ''
+            );
+
+            assert.ok(result.includes('x:DataType="controls:MyControl"'));
+            assert.ok(result.includes('xmlns:controls="clr-namespace:Sample.Controls"'));
+        });
+
+        it('should not duplicate xmlns for same namespace', () => {
+
+            const extra = `
+            xmlns:controls="clr-namespace:Sample.Controls"
+        `;
+
+            const result = generateXaml(
+                'Sample.Controls.MyControl',
+                '<Label />',
+                extra
+            );
+
+            const count = (result.match(/xmlns:controls/g) || []).length;
+
+            assert.strictEqual(count, 1);
+        });
+
+    });
+
+    // =========================
+    // CONTROL USAGE (BINDINGS TRANSFER)
+    // =========================
+
+    describe('Control Usage Generation', () => {
+
+        it('should generate control usage with bindings', () => {
+
+            const usage = generateControlUsage(
+                'controls',
+                'MyControl',
+                [
+                    { prop: 'Title', path: 'Title' },
+                    { prop: 'Description', path: 'Details.Description' }
+                ]
+            );
+
+            assert.ok(usage.includes('<controls:MyControl'));
+            assert.ok(usage.includes('Title="{Binding Title}"'));
+            assert.ok(usage.includes('Description="{Binding Details.Description}"'));
+        });
+
+        it('should generate self-closing control when no bindings', () => {
+
+            const usage = generateControlUsage(
+                'controls',
+                'MyControl',
+                []
+            );
+
+            assert.strictEqual(usage.trim(), '<controls:MyControl />');
+        });
+
+    });
+
 
 });

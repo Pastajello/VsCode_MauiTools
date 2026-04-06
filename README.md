@@ -56,7 +56,7 @@ A sample MAUI project will open automatically for testing.
   * [x] XAML version
   * [ ] C# version
 
-* [ ] Extract UI into reusable components
+* [x] Extract UI into reusable components
   *(e.g. select part of XAML → extract to ContentView + generate BindableProperties)*
 * a lot more
 

@@ -2,6 +2,14 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { getNamespace } from '../utils/mauiHelper';
 
+import {
+    extractXmlns,
+    extractBindings,
+    generateBindableProperties,
+    generateXaml,
+    generateCodeBehind
+} from '../core/extractLogic';
+
 export async function extractToControl() {
 
     const editor = vscode.window.activeTextEditor;
@@ -30,7 +38,7 @@ export async function extractToControl() {
     const docText = editor.document.getText();
 
     // =========================
-    // ETAPY
+    // LOGIC (PURE)
     // =========================
 
     const { extraXmlns, missingPrefixes } = extractXmlns(selectedText, docText);
@@ -44,7 +52,7 @@ export async function extractToControl() {
     const csContent = generateCodeBehind(namespace, name, bindableProperties);
 
     // =========================
-    // CREATE FILES
+    // FILES
     // =========================
 
     await writeFile(xamlPath, xamlContent);
@@ -71,7 +79,7 @@ export async function extractToControl() {
 
 //
 // =========================
-// ETAP 1: NAME
+// UI HELPERS
 // =========================
 //
 
@@ -81,12 +89,6 @@ async function askForName(): Promise<string | undefined> {
         value: 'MyControl'
     });
 }
-
-//
-// =========================
-// ETAP 2: FOLDER
-// =========================
-//
 
 async function pickFolder(docUri: vscode.Uri): Promise<vscode.Uri | undefined> {
 
@@ -102,132 +104,7 @@ async function pickFolder(docUri: vscode.Uri): Promise<vscode.Uri | undefined> {
 
 //
 // =========================
-// ETAP 3: XMLNS
-// =========================
-//
-
-export function extractXmlns(selectedText: string, docText: string) {
-
-    const usedPrefixes = new Set<string>();
-    const prefixRegex = /\b([a-zA-Z_][\w]*):/g;
-
-    let match;
-    while ((match = prefixRegex.exec(selectedText)) !== null) {
-        const prefix = match[1];
-        if (prefix !== 'x') usedPrefixes.add(prefix);
-    }
-
-    const namespaceMap = new Map<string, string>();
-    const xmlnsRegex = /xmlns:(\w+)="([^"]+)"/g;
-
-    while ((match = xmlnsRegex.exec(docText)) !== null) {
-        namespaceMap.set(match[1], match[2]);
-    }
-
-    let extraXmlns = '';
-    const missingPrefixes: string[] = [];
-
-    for (const prefix of usedPrefixes) {
-        const ns = namespaceMap.get(prefix);
-
-        if (ns) {
-            extraXmlns += `\n             xmlns:${prefix}="${ns}"`;
-        } else {
-            missingPrefixes.push(prefix);
-        }
-    }
-
-    return { extraXmlns, missingPrefixes };
-}
-
-//
-// =========================
-// ETAP 4: BINDINGS
-// =========================
-//
-
-export function extractBindings(text: string): string[] {
-
-    const matches = [...text.matchAll(/\{Binding\s+([A-Za-z0-9_]+)/g)];
-
-    const props = matches.map(m => m[1]);
-
-    return [...new Set(props)]; // unique
-}
-
-//
-// =========================
-// ETAP 5: BINDABLE PROPERTIES
-// =========================
-//
-
-export function generateBindableProperties(bindings: string[], controlName: string): string {
-
-    if (bindings.length === 0) return '';
-
-    return bindings.map(name => {
-
-        return `
-public static readonly BindableProperty ${name}Property =
-    BindableProperty.Create(
-        nameof(${name}),
-        typeof(object),
-        typeof(${controlName})
-    );
-
-public object ${name}
-{
-    get => GetValue(${name}Property);
-    set => SetValue(${name}Property, value);
-}
-`.trim();
-
-    }).join('\n\n');
-}
-
-//
-// =========================
-// ETAP 6: XAML
-// =========================
-//
-
-export function generateXaml(fullClass: string, content: string, extraXmlns: string): string {
-
-    return `
-<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"${extraXmlns}
-             x:Class="${fullClass}">
-${content}
-</ContentView>
-`.trim();
-}
-
-//
-// =========================
-// ETAP 7: CODE BEHIND
-// =========================
-//
-
-function generateCodeBehind(namespace: string, name: string, props: string): string {
-
-    return `
-namespace ${namespace};
-
-public partial class ${name} : ContentView
-{
-    public ${name}()
-    {
-        InitializeComponent();
-    }
-
-${props}
-}
-`.trim();
-}
-
-//
-// =========================
-// ETAP 8: REPLACE
+// REPLACE
 // =========================
 //
 
@@ -293,7 +170,7 @@ async function replaceWithControl(
 
 //
 // =========================
-// UTIL
+// FILE
 // =========================
 //
 

@@ -4,14 +4,16 @@ import {
     extractBindings,
     generateBindableProperties,
     extractXmlns,
-    generateXaml
-} from '../src/commands/extractToControl';
+    generateXaml,
+    generateCodeBehind
+} from '../src/core/extractLogic';
 
-describe('XAML Extract Tests', () => {
+describe('XAML Extract Logic', () => {
 
     // =========================
     // BINDINGS
     // =========================
+
     it('should extract simple bindings', () => {
 
         const input = `
@@ -21,7 +23,7 @@ describe('XAML Extract Tests', () => {
 
         const result = extractBindings(input);
 
-        assert.deepStrictEqual(result, ['Title', 'Details']);
+        assert.deepStrictEqual(result, ['Title', 'Description']);
     });
 
     it('should ignore duplicates', () => {
@@ -36,9 +38,21 @@ describe('XAML Extract Tests', () => {
         assert.deepStrictEqual(result, ['Title']);
     });
 
+    it('should ignore complex bindings (RelativeSource)', () => {
+
+        const input = `
+            <Label Text="{Binding Source={RelativeSource AncestorType=ContentPage}, Path=Title}" />
+        `;
+
+        const result = extractBindings(input);
+
+        assert.deepStrictEqual(result, []);
+    });
+
     // =========================
-    // BINDABLE PROPS
+    // BINDABLE PROPERTIES
     // =========================
+
     it('should generate bindable properties', () => {
 
         const result = generateBindableProperties(['Title'], 'MyControl');
@@ -48,9 +62,17 @@ describe('XAML Extract Tests', () => {
         assert.ok(result.includes('public object Title'));
     });
 
+    it('should return empty string if no bindings', () => {
+
+        const result = generateBindableProperties([], 'MyControl');
+
+        assert.strictEqual(result, '');
+    });
+
     // =========================
     // XMLNS
     // =========================
+
     it('should extract xmlns correctly', () => {
 
         const selected = `<local:MyView />`;
@@ -61,7 +83,7 @@ describe('XAML Extract Tests', () => {
 
         const { extraXmlns, missingPrefixes } = extractXmlns(selected, doc);
 
-        assert.ok(extraXmlns.includes('xmlns:local'));
+        assert.ok(extraXmlns.includes('xmlns:local="clr-namespace:App.Views"'));
         assert.strictEqual(missingPrefixes.length, 0);
     });
 
@@ -78,20 +100,52 @@ describe('XAML Extract Tests', () => {
         assert.deepStrictEqual(missingPrefixes, ['vm']);
     });
 
+    it('should ignore x: prefix', () => {
+
+        const selected = `<x:Type />`;
+
+        const doc = `
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+        `;
+
+        const { extraXmlns, missingPrefixes } = extractXmlns(selected, doc);
+
+        assert.strictEqual(extraXmlns.trim(), '');
+        assert.strictEqual(missingPrefixes.length, 0);
+    });
+
     // =========================
-    // XAML
+    // XAML GENERATION
     // =========================
+
     it('should generate valid XAML', () => {
 
         const result = generateXaml(
             'App.Controls.MyControl',
             '<Label />',
-            '\n xmlns:local="test"'
+            '\n             xmlns:local="test"'
         );
 
-        assert.ok(result.includes('ContentView'));
+        assert.ok(result.includes('<ContentView'));
         assert.ok(result.includes('x:Class="App.Controls.MyControl"'));
-        assert.ok(result.includes('xmlns:local'));
+        assert.ok(result.includes('xmlns:local="test"'));
+        assert.ok(result.includes('<Label />'));
+    });
+
+    // =========================
+    // CODE BEHIND
+    // =========================
+
+    it('should generate code-behind with properties', () => {
+
+        const props = generateBindableProperties(['Title'], 'MyControl');
+
+        const result = generateCodeBehind('App.Controls', 'MyControl', props);
+
+        assert.ok(result.includes('namespace App.Controls'));
+        assert.ok(result.includes('partial class MyControl'));
+        assert.ok(result.includes('InitializeComponent()'));
+        assert.ok(result.includes('TitleProperty'));
     });
 
 });

@@ -17,7 +17,7 @@
   },
   "scripts": {
     "build": "npm run build:grammar && tsc",
-    "test": "mocha -r ts-node/register -p tsconfig.test.json test/**/*.test.ts",
+    "test": "TS_NODE_PROJECT=tsconfig.test.json mocha -r ts-node/register \"test/**/*.test.ts\"",
     "watch": "npm run build:grammar && concurrently \"npm:watch:ts\" \"npm:watch:grammar\"",
     "watch:ts": "tsc -w",
     "watch:grammar": "chokidar \"syntaxes/*.jsonc\" -c \"npm run build:grammar\"",

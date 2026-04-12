@@ -9,6 +9,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "sourceMap": true,
     "ignoreDeprecations": "6.0"
 
   },

@@ -14,7 +14,6 @@ import {
 } from '../core/extractLogic';
 
 export async function extractToControl() {
-
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
 

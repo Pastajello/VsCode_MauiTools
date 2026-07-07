@@ -1,120 +1,261 @@
 {
   "scopeName": "text.xml.xaml",
   "patterns": [
-    {
-      "include": "#tags"
-    },
-    {
-      "include": "#attributes"
-    },
-    {
-      "include": "#strings"
-    }
+    { "include": "#comment" },
+    { "include": "#processing-instruction" },
+    { "include": "#cdata" },
+    { "include": "#closing-tag" },
+    { "include": "#tag" }
   ],
   "repository": {
-    "tags": {
+
+    // ── XML comments ──────────────────────────────────────────
+    "comment": {
+      "name": "comment.block.xaml",
+      "begin": "<!--",
+      "beginCaptures": { "0": { "name": "punctuation.definition.comment.begin.xaml" } },
+      "end": "-->",
+      "endCaptures": { "0": { "name": "punctuation.definition.comment.end.xaml" } }
+    },
+
+    // ── Processing instruction <?xml … ?> ─────────────────────
+    "processing-instruction": {
+      "begin": "(<\\?)([a-zA-Z_][\\w]*)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.xaml" },
+        "2": { "name": "entity.name.tag.xaml" }
+      },
+      "end": "(\\?>)",
+      "endCaptures": { "1": { "name": "punctuation.definition.tag.end.xaml" } },
+      "patterns": [
+        { "include": "#tag-stuff" }
+      ]
+    },
+
+    // ── CDATA section ─────────────────────────────────────────
+    "cdata": {
+      "name": "string.unquoted.cdata.xaml",
+      "begin": "<!\\[CDATA\\[",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.xaml" } },
+      "end": "\\]\\]>",
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.xaml" } }
+    },
+
+    // ── Closing tag </…> ──────────────────────────────────────
+    "closing-tag": {
+      "match": "(</)([a-zA-Z_][\\w]*(?::[a-zA-Z_][\\w]*)?(?:\\.[a-zA-Z_][\\w]*)?)\\s*(>)",
+      "captures": {
+        "1": { "name": "punctuation.definition.tag.begin.xaml" },
+        "2": { "patterns": [{ "include": "#tag-name-parts" }] },
+        "3": { "name": "punctuation.definition.tag.end.xaml" }
+      }
+    },
+
+    // ── Opening / self-closing tag ────────────────────────────
+    "tag": {
+      "begin": "(<)([a-zA-Z_][\\w]*(?::[a-zA-Z_][\\w]*)?(?:\\.[a-zA-Z_][\\w]*)?)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.xaml" },
+        "2": { "patterns": [{ "include": "#tag-name-parts" }] }
+      },
+      "end": "(/?>)",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.end.xaml" }
+      },
+      "patterns": [
+        { "include": "#tag-stuff" }
+      ]
+    },
+
+    // ── Decompose tag name into namespace / type / property ───
+    "tag-name-parts": {
       "patterns": [
         {
-          // XAML tags → like HTML/XML tags
-          "name": "entity.name.tag",
-          "match": "</?[A-Za-z0-9\\.:-]+"
+          // ns:Type.Property (e.g. local:ContentPage.Resources)
+          "match": "([a-zA-Z_][\\w]*)(:)([a-zA-Z_][\\w]*)(\\.)([a-zA-Z_][\\w]*)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.namespace.xaml" },
+            "2": { "name": "punctuation.separator.namespace.xaml" },
+            "3": { "name": "entity.name.tag.xaml" },
+            "4": { "name": "punctuation.accessor.xaml" },
+            "5": { "name": "entity.name.tag.xaml" }
+          }
+        },
+        {
+          // ns:Type (e.g. local:MainPage, controls:OfflineVideo)
+          "match": "([a-zA-Z_][\\w]*)(:)([a-zA-Z_][\\w]*)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.namespace.xaml" },
+            "2": { "name": "punctuation.separator.namespace.xaml" },
+            "3": { "name": "entity.name.tag.xaml" }
+          }
+        },
+        {
+          // Type.Property (e.g. ContentPage.Resources, VisualStateManager.VisualStateGroups)
+          "match": "([a-zA-Z_][\\w]*)(\\.)([a-zA-Z_][\\w]*)",
+          "captures": {
+            "1": { "name": "entity.name.tag.xaml" },
+            "2": { "name": "punctuation.accessor.xaml" },
+            "3": { "name": "entity.name.tag.xaml" }
+          }
+        },
+        {
+          // Simple type (e.g. ContentPage, Label, Grid)
+          "match": "[a-zA-Z_][\\w]*",
+          "name": "entity.name.tag.xaml"
         }
       ]
     },
-    "attributes": {
+
+    // ── Attributes & values inside a tag ──────────────────────
+    "tag-stuff": {
       "patterns": [
+        { "include": "#xmlns-attribute" },
+        { "include": "#x-attribute" },
+        { "include": "#attached-property" },
+        { "include": "#prefixed-attribute" },
+        { "include": "#event-attribute" },
+        { "include": "#plain-attribute" },
+        { "include": "#attribute-value" }
+      ]
+    },
+
+    // ── xmlns / xmlns:prefix ──────────────────────────────────
+    "xmlns-attribute": {
+      "match": "(xmlns)(?:(:)([a-zA-Z_][\\w]*))?\\s*(=)",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.xmlns.xaml" },
+        "2": { "name": "punctuation.separator.namespace.xaml" },
+        "3": { "name": "entity.other.attribute-name.namespace.xaml" },
+        "4": { "name": "punctuation.separator.key-value.xaml" }
+      }
+    },
+
+    // ── x:Name, x:Class, x:DataType, x:Key, x:TypeArguments …
+    "x-attribute": {
+      "match": "(x)(:)([A-Za-z_][A-Za-z0-9_]*)\\s*(=)",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.namespace.xaml" },
+        "2": { "name": "punctuation.separator.namespace.xaml" },
+        "3": { "name": "support.type.attribute.xaml" },
+        "4": { "name": "punctuation.separator.key-value.xaml" }
+      }
+    },
+
+    // ── Attached property: Grid.Row, Grid.Column, … ──────────
+    "attached-property": {
+      "match": "([A-Z][a-zA-Z0-9]*)(\\.)([A-Za-z_][A-Za-z0-9_]*)\\s*(=)",
+      "captures": {
+        "1": { "name": "support.type.property-owner.xaml" },
+        "2": { "name": "punctuation.accessor.xaml" },
+        "3": { "name": "entity.other.attribute-name.xaml" },
+        "4": { "name": "punctuation.separator.key-value.xaml" }
+      }
+    },
+
+    // ── ns:Attribute (non-x, non-xmlns prefix) ───────────────
+    "prefixed-attribute": {
+      "match": "([a-zA-Z_][\\w]*)(:)([a-zA-Z_][\\w]*)\\s*(=)",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.namespace.xaml" },
+        "2": { "name": "punctuation.separator.namespace.xaml" },
+        "3": { "name": "entity.other.attribute-name.xaml" },
+        "4": { "name": "punctuation.separator.key-value.xaml" }
+      }
+    },
+
+    // ── Event handlers: Clicked, TextChanged, … ──────────────
+    "event-attribute": {
+      "match": "\\b(\\w*(?:Clicked|Tapped|Changed|Loaded|Pressed|Released|Appearing|Disappearing|Focused|Unfocused|Completed|Scrolled|Toggled))\\s*(=)",
+      "captures": {
+        "1": { "name": "entity.name.function.event.xaml" },
+        "2": { "name": "punctuation.separator.key-value.xaml" }
+      }
+    },
+
+    // ── Plain attribute ──────────────────────────────────────
+    "plain-attribute": {
+      "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(=)",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.xaml" },
+        "2": { "name": "punctuation.separator.key-value.xaml" }
+      }
+    },
+
+    // ── Attribute value (double-quoted string) ────────────────
+    "attribute-value": {
+      "name": "string.quoted.double.xaml",
+      "begin": "\"",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.xaml" } },
+      "end": "\"",
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.xaml" } },
+      "patterns": [
+        { "include": "#markup-extension" },
         {
-          // x:* → treat like special framework attributes (similar to annotations/types)
-          "name": "support.type",
-          "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b(?==)"
-        },
-        {
-          // local:, vm:, etc. → namespace attributes
-          "name": "entity.other.attribute-name.namespace",
-          "match": "\\b\\w+:\\w+(?==)"
-        },
-        {
-          // Grid.Row → property access (like object.property)
-          "name": "variable.other.property",
-          "match": "\\b\\w+\\.\\w+(?==)"
-        },
-        {
-          // Clicked → behaves like method/event
-          "name": "entity.name.function",
-          "match": "\\b\\w+(Clicked|Tapped|Changed|Loaded|Pressed|Released)(?==)"
-        },
-        {
-          // Default attributes
-          "name": "entity.other.attribute-name",
-          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b(?==)"
+          // HEX colors (#RRGGBB / #AARRGGBB / #RGB)
+          "name": "constant.numeric.color.hex.xaml",
+          "match": "#[0-9A-Fa-f]{3,8}"
         }
       ]
     },
-    "bindings": {
+
+    // ── Markup extension {Binding …}, {StaticResource …}, … ──
+    "markup-extension": {
+      "name": "meta.markup-extension.xaml",
+      "begin": "\\{",
+      "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.xaml" } },
+      "end": "\\}",
+      "endCaptures": { "0": { "name": "punctuation.section.embedded.end.xaml" } },
       "patterns": [
+        // Nested markup extensions first
+        { "include": "#markup-extension" },
         {
-          "name": "meta.embedded.expression",
-          "begin": "\\{",
-          "end": "\\}",
-          "patterns": [
-            {
-              "include": "#bindings"
-            },
-            {
-              // x:* (Reference, Type, Static, etc.)
-              "name": "support.type",
-              "match": "\\bx:[A-Za-z_][A-Za-z0-9_]*\\b"
-            },
-            {
-              // ALL known markup extensions (MAUI/XAML)
-              "name": "support.function",
-              "match": "\\b(Binding|TemplateBinding|StaticResource|DynamicResource|RelativeSource|DataTemplate|OnPlatform|OnIdiom|AppThemeBinding)\\b"
-            },
-            {
-              // Main argument after keyword
-              "name": "variable.other",
-              "match": "(?<=(Binding|TemplateBinding|StaticResource|DynamicResource|RelativeSource|DataTemplate|OnPlatform|OnIdiom|AppThemeBinding)\\s)[A-Za-z0-9_:.]+"
-            },
-            {
-              // Fallback for future extensions (PascalCase)
-              "name": "support.function",
-              "match": "\\b[A-Z][A-Za-z0-9]+\\b(?=\\s|\\})"
-            },
-            {
-              // Parameters (Path=, Source=, Mode=)
-              "name": "variable.parameter",
-              "match": "\\b\\w+(?==)"
-            },
-            {
-              "name": "punctuation.separator",
-              "match": ","
-            },
-            {
-              // Values
-              "name": "variable.other",
-              "match": "(?<=\\=)[^,\\s}]+"
-            }
-          ]
-        }
-      ]
-    },
-    "strings": {
-      "patterns": [
+          // x:Type, x:Static, x:Reference, x:Null, x:DataType, …
+          "match": "(x)(:)([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.namespace.xaml" },
+            "2": { "name": "punctuation.separator.namespace.xaml" },
+            "3": { "name": "keyword.control.markup-extension.xaml" }
+          }
+        },
         {
-          // Strings
-          "name": "string.quoted.double",
-          "begin": "\"",
-          "end": "\"",
-          "patterns": [
-            {
-              // HEX colors → numeric constant
-              "name": "constant.numeric",
-              "match": "#[0-9A-Fa-f]{6,8}"
-            },
-            {
-              "include": "#bindings"
-            }
-          ]
+          // Known MAUI/XAML markup extension keywords
+          "name": "keyword.control.markup-extension.xaml",
+          "match": "\\b(Binding|TemplateBinding|StaticResource|DynamicResource|RelativeSource|DataTemplate|OnPlatform|OnIdiom|AppThemeBinding)\\b"
+        },
+        {
+          // namespace:Type.Member inside bindings (e.g. local:MainPage, l:Res.Instance)
+          "match": "([a-zA-Z_][\\w]*)(:)([a-zA-Z_][\\w]*(?:\\.[a-zA-Z_][\\w]*)*)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.namespace.xaml" },
+            "2": { "name": "punctuation.separator.namespace.xaml" },
+            "3": { "name": "support.type.xaml" }
+          }
+        },
+        {
+          // Parameter names (Path=, Source=, Mode=, AncestorType=, …)
+          "name": "entity.other.attribute-name.xaml",
+          "match": "[a-zA-Z_][\\w]*(?==)"
+        },
+        {
+          // = operator
+          "name": "keyword.operator.assignment.xaml",
+          "match": "="
+        },
+        {
+          // Comma separator
+          "name": "punctuation.separator.comma.xaml",
+          "match": ","
+        },
+        {
+          // Values after = (may include dots, brackets, etc.)
+          "name": "variable.other.value.xaml",
+          "match": "(?<=\\=)[^,\\s\\}\\{]+"
+        },
+        {
+          // Positional arguments (binding paths, resource keys, type names, …)
+          "name": "variable.other.property.xaml",
+          "match": "[A-Za-z_\\[][A-Za-z0-9_\\.\\[\\]]*"
         }
       ]
     }
